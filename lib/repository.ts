@@ -18,6 +18,9 @@ export interface ScheduleRepository {
   getAppointmentSlot(appointment: AppointmentRecord): Promise<(TimeSlotRecord & { dayDate: string }) | undefined>;
   getAdminSchedule(): Promise<AdminSchedule>;
   generateScheduleForDay(date: string, startTime: string, endTime: string, intervalMinutes: number, bufferEveryMinutes: number, notes?: string): Promise<unknown>;
+  updateDay(dayId: string, date: string, notes: string): Promise<unknown>;
+  addTimeSlot(dayId: string, startTime: string, endTime: string, isBuffer: boolean): Promise<unknown>;
+  deleteTimeSlot(slotId: string): Promise<void>;
   toggleSlotBlocked(slotId: string): Promise<unknown>;
   cancelAppointment(appointmentId: string): Promise<unknown>;
   createWalkInAppointment(slotId: string, memberName: string, phone: string): Promise<AppointmentRecord>;
@@ -35,6 +38,9 @@ const mockRepository: ScheduleRepository = {
   getAppointmentSlot: async (appointment) => mock.getAppointmentSlot(appointment),
   getAdminSchedule: async () => mock.getAdminSchedule(),
   generateScheduleForDay: async (...args) => mock.generateScheduleForDay(...args),
+  updateDay: async (...args) => mock.updateDay(...args),
+  addTimeSlot: async (...args) => mock.addTimeSlot(...args),
+  deleteTimeSlot: async (id) => { mock.deleteTimeSlot(id); },
   toggleSlotBlocked: async (id) => mock.toggleSlotBlocked(id),
   cancelAppointment: async (id) => mock.cancelAppointment(id),
   createWalkInAppointment: async (...args) => mock.createWalkInAppointment(...args),

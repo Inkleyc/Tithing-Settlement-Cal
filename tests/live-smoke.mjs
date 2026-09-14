@@ -31,6 +31,13 @@ try {
     createdDayIds.push(day.id);
   }
 
+  await postAdmin({ action: "edit-day", dayId: createdDayIds[0], date: dates[0], notes: `${marker} edited` });
+  let editedSchedule = (await postAdmin({ action: "add-slot", dayId: createdDayIds[0], startTime: "11:10", endTime: "11:20", isBuffer: false })).body.schedule;
+  const addedSlot = editedSchedule.find((entry) => entry.day.id === createdDayIds[0]).slots.find((slot) => slot.startTime === "11:10");
+  if (!addedSlot) throw new Error("Individually added time slot was not returned.");
+  editedSchedule = (await postAdmin({ action: "delete-slot", slotId: addedSlot.id })).body.schedule;
+  if (editedSchedule.find((entry) => entry.day.id === createdDayIds[0]).slots.some((slot) => slot.id === addedSlot.id)) throw new Error("Deleted time slot is still present.");
+
   let schedule = (await request("/api/schedule")).body;
   const firstDay = createdDayIds[0], secondDay = createdDayIds[1];
   const first = openSlots(schedule, firstDay)[0];

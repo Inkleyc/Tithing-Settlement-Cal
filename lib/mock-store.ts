@@ -393,6 +393,28 @@ export const rescheduleAppointment = (token: string, newSlotId: string) => {
   return appointment;
 };
 
+export const updateDay = (dayId: string, date: string, notes: string) => {
+  const day = seedDays.find((item) => item.id === dayId);
+  if (!day) throw new Error("Declaration day not found.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Choose a valid date.");
+  if (seedDays.some((item) => item.id !== dayId && item.date === date)) throw new Error("A schedule already exists for that date.");
+  day.date = date; day.notes = notes; return day;
+};
+
+export const addTimeSlot = (dayId: string, startTime: string, endTime: string, isBuffer: boolean) => {
+  if (!seedDays.some((day) => day.id === dayId)) throw new Error("Declaration day not found.");
+  if (mockSlots.some((slot) => slot.dayId === dayId && slot.startTime === startTime)) throw new Error("A slot already starts at that time.");
+  if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime) || startTime >= endTime) throw new Error("End time must be after start time.");
+  const created = makeSlot(`slot-${Date.now()}`, dayId, startTime, endTime, isBuffer); mockSlots.push(created); return created;
+};
+
+export const deleteTimeSlot = (slotId: string) => {
+  const index = mockSlots.findIndex((slot) => slot.id === slotId);
+  if (index < 0) throw new Error("Time slot not found.");
+  if (mockAppointments.some((item) => item.timeSlotId === slotId || item.pairedSlotId === slotId)) throw new Error("A slot with appointment history cannot be deleted.");
+  mockSlots.splice(index, 1);
+};
+
 export const getAppointmentSlot = (appointment: AppointmentRecord) => {
   const slot = mockSlots.find((item) => item.id === appointment.timeSlotId);
   const day = slot && seedDays.find((item) => item.id === slot.dayId);

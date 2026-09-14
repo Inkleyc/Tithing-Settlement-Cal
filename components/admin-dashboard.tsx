@@ -34,6 +34,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [walkInForm, setWalkInForm] = useState({ name: "", phone: "" });
+  const [dayForm, setDayForm] = useState({ date: "", notes: "" });
+  const [slotForm, setSlotForm] = useState({ startTime: "", endTime: "", isBuffer: false });
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
     startTime: "13:00",
@@ -44,7 +46,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   });
 
   const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); return data.schedule as AdminSchedule; };
-  useEffect(() => { if (!isAuthenticated) return; void fetch("/api/admin/schedule", { cache: "no-store" }).then((r) => r.json()).then((data) => { setSchedule(data.schedule ?? []); setDayId((value) => value || data.schedule?.[0]?.day.id || ""); }); }, [isAuthenticated]);
+  useEffect(() => { if (!isAuthenticated) return; void fetch("/api/admin/schedule", { cache: "no-store" }).then((r) => r.json()).then((data) => { const initial=data.schedule?.[0]; setSchedule(data.schedule ?? []); setDayId((value) => value || initial?.day.id || ""); if(initial)setDayForm({date:initial.day.date,notes:initial.day.notes}); }); }, [isAuthenticated]);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,7 +73,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     try {
     const next = await mutate({ action: "generate", ...scheduleForm });
     const created = next.find((item) => item.day.date === scheduleForm.date)!;
-    setStatus(`Generated slots for ${formatDate(created.day.date)}.`); setDayId(created.day.id);
+    setStatus(`Generated slots for ${formatDate(created.day.date)}.`); setDayId(created.day.id); setDayForm({date:created.day.date,notes:created.day.notes});
     } catch (caught) {
       setStatus(caught instanceof Error ? caught.message : "Unable to generate schedule.");
     }
@@ -96,6 +98,23 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     setSelectedSlotId(null);
     setIsWalkInOpen(false);
     setStatus("Walk-in appointment added.");
+  };
+
+  const handleEditDay = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try { await mutate({ action: "edit-day", dayId, ...dayForm }); setStatus("Declaration day updated."); }
+    catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to update the day."); }
+  };
+
+  const handleAddSlot = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try { await mutate({ action: "add-slot", dayId, ...slotForm }); setSlotForm({ startTime: "", endTime: "", isBuffer: false }); setStatus("Time slot added."); }
+    catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to add the slot."); }
+  };
+
+  const handleDeleteSlot = async (slotId: string) => {
+    try { await mutate({ action: "delete-slot", slotId }); setStatus("Time slot deleted."); }
+    catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to delete the slot."); }
   };
 
   if (!isAuthenticated) {
@@ -208,7 +227,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             </div>
             <div className="flex gap-2">
               {schedule.map((item) => (
-                <button key={item.day.id} type="button" onClick={() => setDayId(item.day.id)} className={[
+                <button key={item.day.id} type="button" onClick={() => { setDayId(item.day.id); setDayForm({date:item.day.date,notes:item.day.notes}); }} className={[
                   "rounded-xl border px-3 py-2 text-sm font-medium",
                   item.day.id === dayId ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700",
                 ].join(" ")}>
@@ -217,6 +236,28 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               ))}
             </div>
           </div>
+
+          {selectedDay && (
+            <div className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:grid-cols-2">
+              <form onSubmit={handleEditDay} className="space-y-3">
+                <h3 className="font-semibold text-slate-900">Edit selected day</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-sm font-medium text-slate-700">Date<input required type="date" value={dayForm.date} onChange={(event)=>setDayForm((current)=>({...current,date:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                  <label className="text-sm font-medium text-slate-700">Notes<input value={dayForm.notes} maxLength={255} onChange={(event)=>setDayForm((current)=>({...current,notes:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                </div>
+                <button type="submit" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Save day</button>
+              </form>
+              <form onSubmit={handleAddSlot} className="space-y-3">
+                <h3 className="font-semibold text-slate-900">Add one time slot</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="text-sm font-medium text-slate-700">Start<input required type="time" value={slotForm.startTime} onChange={(event)=>setSlotForm((current)=>({...current,startTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                  <label className="text-sm font-medium text-slate-700">End<input required type="time" value={slotForm.endTime} onChange={(event)=>setSlotForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={slotForm.isBuffer} onChange={(event)=>setSlotForm((current)=>({...current,isBuffer:event.target.checked}))} />Buffer / catch-up time</label>
+                <button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Add time</button>
+              </form>
+            </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {daySlots.map((slot) => {
@@ -259,6 +300,9 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                       <PlusCircle className="h-3.5 w-3.5" />
                       Add walk-in
                     </button>
+                  )}
+                  {!appointment && (
+                    <button type="button" onClick={() => handleDeleteSlot(slot.id)} className="mt-2 inline-flex items-center gap-2 rounded-lg border border-red-200 px-2 py-1 text-xs font-medium text-red-700"><Trash2 className="h-3.5 w-3.5" />Delete time</button>
                   )}
                 </div>
               );
