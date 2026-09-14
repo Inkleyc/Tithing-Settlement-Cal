@@ -41,7 +41,6 @@ export function PublicBooking() {
     time: string;
     token: string;
   }>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const loadSchedule = async () => {
@@ -96,7 +95,6 @@ export function PublicBooking() {
     setForm({ memberName: "", email: "", phone: "", isLargeFamily: false });
     setSelectedSlotId(null);
     setIsModalOpen(false);
-    setRefreshKey((value) => value + 1);
     await loadSchedule();
     setError(null);
     } catch (caught) {
@@ -104,7 +102,7 @@ export function PublicBooking() {
     }
   };
 
-  const slotCount = slots.filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked).length;
+  const openSlots = slots.filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-8">
@@ -121,13 +119,24 @@ export function PublicBooking() {
         </div>
       </header>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
           <CalendarRange className="h-4 w-4" />
-          Available dates
+          Choose a date
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <select
+          value={selectedDayId}
+          onChange={(event) => setSelectedDayId(event.target.value)}
+          className="mt-4 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-medium text-slate-900"
+        >
+          {days.map((day) => {
+            const openCount = (slotsByDay[day.id] ?? []).filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked).length;
+            return <option key={day.id} value={day.id}>{formatDate(day.date)} — {openCount} open</option>;
+          })}
+        </select>
+
+        <div className="hidden">
           {days.map((day) => {
             const daySlots = slotsByDay[day.id] ?? [];
             const openCount = daySlots.filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked).length;
@@ -167,17 +176,17 @@ export function PublicBooking() {
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Selected day</p>
               <h2 className="text-2xl font-bold text-slate-900">{formatDate(selectedDay.date)}</h2>
             </div>
-            <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">{slotCount} available</div>
+            <div className="rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">{openSlots.length} available</div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-            {slots.map((slot) => {
+          <div className="mx-auto flex max-w-xl flex-col gap-2">
+            {openSlots.map((slot) => {
               const reserved = slot.isReserved;
               const unavailable = slot.isBuffer || slot.isBlocked || reserved;
 
               return (
                 <button
-                  key={`${slot.id}-${refreshKey}`}
+                  key={slot.id}
                   type="button"
                   disabled={unavailable}
                   onClick={() => handleOpenBooking(slot.id)}
