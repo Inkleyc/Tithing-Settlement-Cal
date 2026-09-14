@@ -25,6 +25,8 @@ npm run build
 npm audit --omit=dev
 ```
 
+With `.env.local` configured and a local server running on port 3010, `npm run test:live` performs an isolated end-to-end acceptance test against Supabase and removes its test records afterward. Set `APP_URL` to test another local origin.
+
 ## Supabase setup
 
 Create a Supabase project, then run `supabase/migrations/001_initial_schema.sql` in its SQL editor or through the Supabase CLI. The migration creates the tables, row-level security, and server-only transactional functions. Booking and rescheduling lock the affected rows inside PostgreSQL, including a large-family paired slot, so concurrent requests cannot double-book them. The service-role client is used only on the server; no public database policies are required.

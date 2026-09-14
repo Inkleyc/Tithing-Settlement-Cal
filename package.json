@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit --incremental false",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:live": "node tests/live-smoke.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
