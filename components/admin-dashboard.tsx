@@ -262,11 +262,15 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {daySlots.map((slot) => {
               const appointment = slot.appointment;
+              if (appointment?.pairedSlotId === slot.id && appointment.timeSlotId !== slot.id) return null;
+              const pairedSlot = appointment?.pairedSlotId ? daySlots.find((item) => item.id === appointment.pairedSlotId) : undefined;
               const reserved = slot.isReserved || Boolean(appointment);
+              const appointmentTime = pairedSlot ? `${formatTime(slot.startTime)} – ${formatTime(pairedSlot.endTime)}` : formatTime(slot.startTime);
 
               return (
                 <div key={slot.id} className={[
                   "rounded-2xl border p-4",
+                  pairedSlot ? "sm:col-span-2" : "",
                   slot.isBlocked ? "border-red-200 bg-red-50" : slot.isBuffer ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-slate-50",
                 ].join(" ")}>
                   <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -275,11 +279,12 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                       {slot.isBlocked ? "Unblock" : "Block"}
                     </button>
                   </div>
-                  <p className="mt-3 text-xl font-bold text-slate-900">{slot.isBuffer || slot.isBlocked || reserved ? "—" : formatTime(slot.startTime)}</p>
+                  <p className="mt-3 text-xl font-bold text-slate-900">{slot.isBuffer || slot.isBlocked ? "—" : appointmentTime}</p>
 
                   {appointment && (
                     <div className="mt-4 rounded-xl bg-white p-3 text-sm text-slate-700">
                       <p className="font-semibold text-slate-900">{appointment.memberName}</p>
+                      {pairedSlot && <p className="font-medium text-emerald-700">20-minute appointment</p>}
                       <p>{appointment.phone}</p>
                       <p>{appointment.email}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -332,7 +337,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   {schedule.flatMap((dayGroup) =>
                     dayGroup.slots.filter((slot) => !slot.appointment?.pairedSlotId || slot.appointment.timeSlotId === slot.id).map((slot) => (
                       <tr key={`${dayGroup.day.id}-${slot.id}`}>
-                        <td className="px-3 py-2">{slot.isBuffer ? "Buffer" : formatTime(slot.startTime)}</td>
+                        <td className="px-3 py-2">{slot.isBuffer ? "Buffer" : slot.appointment?.pairedSlotId ? `${formatTime(slot.startTime)} – ${formatTime(dayGroup.slots.find((item) => item.id === slot.appointment?.pairedSlotId)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</td>
                         <td className="px-3 py-2">{slot.appointment?.memberName ?? "—"}</td>
                         <td className="px-3 py-2">{slot.appointment?.phone ?? "—"}</td>
                         <td className="px-3 py-2">{slot.appointment?.email ?? "—"}</td>
