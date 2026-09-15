@@ -41,6 +41,7 @@ export function PublicBooking() {
     date: string;
     time: string;
     token: string;
+    emailDelivered: boolean;
   }>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,6 +96,7 @@ export function PublicBooking() {
       date: formatDate(selectedDay.date),
       time: formatTime(slot?.startTime ?? ""),
       token: appointment.rescheduleToken,
+      emailDelivered: payload.emailDelivered !== false,
     });
 
     setForm({ memberName: "", email: "", phone: "", isLargeFamily: false });
@@ -316,7 +318,7 @@ export function PublicBooking() {
               <div className="mt-4 flex flex-wrap gap-3 text-sm text-emerald-900">
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2">
                   <Mail className="h-4 w-4" />
-                  Confirmation sent
+                  {success.emailDelivered ? "Confirmation email sent" : "Email unavailable — save the link below"}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2">
                   <Phone className="h-4 w-4" />

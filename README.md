@@ -6,7 +6,7 @@ Public booking, secure rescheduling, administrator scheduling, printable rosters
 
 All route handlers use one server-only repository contract. When both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are present, the app automatically uses Supabase. If either is absent, it uses the shared in-memory mock repository, which is seeded at server startup and resets when the server restarts. Never expose the service-role key through a `NEXT_PUBLIC_` variable.
 
-Email selects Resend only when both `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are present; otherwise messages are logged to the server console.
+Email selects Gmail SMTP when both `GMAIL_USER` and `GMAIL_APP_PASSWORD` are present. Otherwise it selects Resend when both Resend variables are present, then falls back to the server console. Gmail credentials take precedence when both transports are configured.
 
 ## Local development
 
@@ -40,9 +40,14 @@ Configure:
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
 - `ADMIN_PASSWORD` and a separate random `SESSION_SECRET` of at least 32 characters
 - `CRON_SECRET`
+- `GMAIL_USER` and a Google app-specific `GMAIL_APP_PASSWORD` (no custom domain required)
 - `RESEND_API_KEY` and a verified-sender `RESEND_FROM_EMAIL`
 - `NEXT_PUBLIC_APP_URL` with the deployed HTTPS origin
 
 Apply the migration before deploying. `vercel.json` invokes `/api/cron/reminders`; Vercel cron schedules use UTC. `14:00 UTC` is 08:00 Mountain Daylight Time, while exact 08:00 Mountain Standard Time requires `15:00 UTC`. Cron requests must carry `Authorization: Bearer $CRON_SECRET`.
 
 Public schedule responses contain reservation state but no member details. Appointment details require the unguessable reschedule token, and administrative data and mutations require the signed, HTTP-only admin session cookie.
+
+## Gmail delivery without a domain
+
+Use a dedicated ward Gmail account. Enable Google 2-Step Verification, create an app password named `Tithing Scheduler`, and configure the Gmail variables locally and in Vercel. Never use the account's normal password or commit the app password. Confirmation and reminder messages include the ward, date, full appointment range, Bishop's Office, Executive Secretary phone, and secure reschedule link. If a confirmation email fails after a reservation is stored, the UI still confirms the booking and tells the member to save the displayed reschedule link; failed reminders remain eligible for a later retry.
