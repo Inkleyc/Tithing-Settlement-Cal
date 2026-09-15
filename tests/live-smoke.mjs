@@ -8,6 +8,7 @@ const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth:
 const createdDayIds = [];
 let cookie = "";
 let originalWardName;
+let originalAdminPhone;
 
 const request = async (path, options = {}, expected = 200) => {
   const response = await fetch(`${base}${path}`, { ...options, headers: { "Content-Type": "application/json", ...(cookie ? { Cookie: cookie } : {}), ...options.headers } });
@@ -19,15 +20,18 @@ const postAdmin = (body, expected = 200) => request("/api/admin/schedule", { met
 const openSlots = (schedule, dayId) => schedule.slots[dayId].filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked);
 
 try {
-  const settings = await db.from("app_settings").select("ward_name").eq("id", true).single();
+  const settings = await db.from("app_settings").select("ward_name,executive_secretary_phone").eq("id", true).single();
   if (settings.error) throw settings.error;
   originalWardName = settings.data.ward_name;
+  originalAdminPhone = settings.data.executive_secretary_phone;
   await request("/api/admin/schedule", {}, 401);
   const login = await request("/api/admin/login", { method: "POST", body: JSON.stringify({ password: env.ADMIN_PASSWORD }) });
   cookie = login.response.headers.get("set-cookie")?.split(";", 1)[0] || "";
   if (!cookie) throw new Error("Admin login did not set a session cookie.");
   const testWardName = `Acceptance Test Ward ${Date.now()}`;
   await postAdmin({ action: "ward-name", name: testWardName });
+  const testAdminPhone = "+1 (801) 555-0198";
+  await postAdmin({ action: "admin-phone", phone: testAdminPhone });
   const publicSettings = (await request("/api/schedule")).body;
   if (publicSettings.wardName !== testWardName) throw new Error("Ward name was not returned by the public schedule API.");
 
@@ -50,6 +54,8 @@ try {
   const firstDay = createdDayIds[0], secondDay = createdDayIds[1];
   const first = openSlots(schedule, firstDay)[0];
   const normal = (await request("/api/appointments", { method: "POST", body: JSON.stringify({ dayId: firstDay, slotId: first.id, memberName: "Acceptance Test", email: "acceptance@example.com", phone: "801-555-0100", isLargeFamily: false }) })).body.appointment;
+  const rescheduleDetails = (await request(`/api/reschedule?token=${encodeURIComponent(normal.rescheduleToken)}`)).body;
+  if (rescheduleDetails.adminPhone !== testAdminPhone) throw new Error("Executive Secretary phone was not returned on the rescheduling flow.");
   await request("/api/appointments", { method: "POST", body: JSON.stringify({ dayId: firstDay, slotId: first.id, memberName: "Double Book", email: "double@example.com", phone: "801-555-0101", isLargeFamily: false }) }, 400);
 
   schedule = (await request("/api/schedule")).body;
@@ -81,8 +87,8 @@ try {
   await request("/api/cron/reminders", { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
   console.log("Live acceptance test passed.");
 } finally {
-  if (originalWardName !== undefined) {
-    const restoreSettings = await db.from("app_settings").update({ ward_name: originalWardName }).eq("id", true);
+  if (originalWardName !== undefined && originalAdminPhone !== undefined) {
+    const restoreSettings = await db.from("app_settings").update({ ward_name: originalWardName, executive_secretary_phone: originalAdminPhone }).eq("id", true);
     if (restoreSettings.error) throw restoreSettings.error;
   }
   if (createdDayIds.length) {

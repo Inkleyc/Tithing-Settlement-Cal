@@ -1,3 +1,5 @@
+import "server-only";
+
 export type AppointmentStatus = "confirmed" | "cancelled";
 
 export type DayRecord = {
@@ -394,8 +396,11 @@ export const rescheduleAppointment = (token: string, newSlotId: string) => {
 };
 
 let mockWardName = "";
+let mockAdminPhone = "";
 export const getWardName = () => mockWardName;
 export const updateWardName = (name: string) => { mockWardName = name; return mockWardName; };
+export const getAdminPhone = () => mockAdminPhone;
+export const updateAdminPhone = (phone: string) => { mockAdminPhone = phone; return mockAdminPhone; };
 
 export const updateDay = (dayId: string, date: string, notes: string) => {
   const day = seedDays.find((item) => item.id === dayId);
@@ -436,5 +441,3 @@ export const markReminderSent = (appointmentId: string) => {
   const appointment = mockAppointments.find((item) => item.id === appointmentId);
   if (appointment) appointment.reminderEmailSent = true;
 };
-import "server-only";
-export { ADMIN_PHONE } from "./public-config";

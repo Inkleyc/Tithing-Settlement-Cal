@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRightLeft, CalendarRange, Clock3, UserRound } from "lucide-react";
 import type { AppointmentRecord } from "@/lib/mock-store";
-import { ADMIN_PHONE } from "@/lib/public-config";
 
 const formatDate = (dateValue: string) => {
   const parsed = new Date(`${dateValue}T00:00:00`);
@@ -27,11 +26,12 @@ export function RescheduleClient({ token }: { token: string }) {
   const [availableSlots, setAvailableSlots] = useState<Array<{ id: string; dayDate: string; startTime: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [adminPhone, setAdminPhone] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     void fetch(`/api/reschedule?token=${encodeURIComponent(token)}`, { cache: "no-store" }).then(async (response) => ({ ok: response.ok, data: await response.json() })).then(({ ok, data }) => {
-      if (ok) { setAppointment(data.appointment); setCurrentSlot(data.currentSlot); setAvailableSlots(data.availableSlots); } setLoading(false);
+      if (ok) { setAppointment(data.appointment); setCurrentSlot(data.currentSlot); setAvailableSlots(data.availableSlots); setAdminPhone(data.adminPhone ?? ""); } setLoading(false);
     });
   }, [token]);
 
@@ -52,7 +52,7 @@ export function RescheduleClient({ token }: { token: string }) {
       const response = await fetch("/api/reschedule", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, slotId }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
-      setAppointment(data.appointment); setCurrentSlot(data.currentSlot); setAvailableSlots(data.availableSlots);
+      setAppointment(data.appointment); setCurrentSlot(data.currentSlot); setAvailableSlots(data.availableSlots); setAdminPhone(data.adminPhone ?? "");
       setNotice("Your appointment has been updated successfully.");
       setRefreshKey((value) => value + 1);
     } catch (error) {
@@ -89,7 +89,7 @@ export function RescheduleClient({ token }: { token: string }) {
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             <p className="font-semibold">Need to cancel completely?</p>
-            <p className="mt-2">Please call or text the Executive Secretary directly at {ADMIN_PHONE}.</p>
+            <p className="mt-2">Please call or text the Executive Secretary directly{adminPhone ? <> at <a className="font-semibold underline" href={`tel:${adminPhone}`}>{adminPhone}</a></> : " for assistance"}.</p>
           </div>
         </div>
       </div>

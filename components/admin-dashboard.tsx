@@ -30,6 +30,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [wardName, setWardName] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
   const [dayId, setDayId] = useState("");
   const [schedule, setSchedule] = useState<AdminSchedule>([]);
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
@@ -46,8 +47,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     notes: "",
   });
 
-  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setWardName(data.wardName ?? ""); return data.schedule as AdminSchedule; };
-  useEffect(() => { if (!isAuthenticated) return; void fetch("/api/admin/schedule", { cache: "no-store" }).then((r) => r.json()).then((data) => { const initial=data.schedule?.[0]; setSchedule(data.schedule ?? []); setWardName(data.wardName ?? ""); setDayId((value) => value || initial?.day.id || ""); if(initial)setDayForm({date:initial.day.date,notes:initial.day.notes}); }); }, [isAuthenticated]);
+  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); return data.schedule as AdminSchedule; };
+  useEffect(() => { if (!isAuthenticated) return; void fetch("/api/admin/schedule", { cache: "no-store" }).then((r) => r.json()).then((data) => { const initial=data.schedule?.[0]; setSchedule(data.schedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setDayId((value) => value || initial?.day.id || ""); if(initial)setDayForm({date:initial.day.date,notes:initial.day.notes}); }); }, [isAuthenticated]);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -105,6 +106,12 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     event.preventDefault();
     try { await mutate({action:"ward-name",name:wardName}); setStatus("Ward name saved."); }
     catch(caught){setStatus(caught instanceof Error?caught.message:"Unable to save the ward name.");}
+  };
+
+  const handleAdminPhone = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try { await mutate({action:"admin-phone",phone:adminPhone}); setStatus("Executive Secretary phone saved."); }
+    catch(caught){setStatus(caught instanceof Error?caught.message:"Unable to save the phone number.");}
   };
 
   const handleEditDay = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -182,6 +189,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           <form onSubmit={handleWardName} className="mb-6 border-b border-slate-200 pb-6">
             <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Ward name<input required maxLength={150} value={wardName} onChange={(event)=>setWardName(event.target.value)} placeholder="Example 3rd Ward" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
             <button type="submit" className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Save ward name</button>
+          </form>
+          <form onSubmit={handleAdminPhone} className="mb-6 border-b border-slate-200 pb-6">
+            <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Executive Secretary phone<input required maxLength={25} value={adminPhone} onChange={(event)=>setAdminPhone(event.target.value)} placeholder="(801) 555-1234" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
+            <button type="submit" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800">Save phone number</button>
           </form>
           <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
             <CalendarClock className="h-4 w-4" />

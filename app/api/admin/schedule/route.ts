@@ -2,12 +2,13 @@ import { requireAdmin } from "@/lib/authorization";
 import { getRepository } from "@/lib/repository";
 import { identifier, jsonBody, phone, text } from "@/lib/validation";
 
-async function adminData() { const repository=getRepository(); const [schedule,wardName]=await Promise.all([repository.getAdminSchedule(),repository.getWardName()]); return {schedule,wardName}; }
+async function adminData() { const repository=getRepository(); const [schedule,wardName,adminPhone]=await Promise.all([repository.getAdminSchedule(),repository.getWardName(),repository.getAdminPhone()]); return {schedule,wardName,adminPhone}; }
 export async function GET(){try{await requireAdmin();return Response.json(await adminData());}catch{return Response.json({message:"Unauthorized"},{status:401});}}
 export async function POST(request:Request){
   try {
     await requireAdmin(); const b=await jsonBody(request); const action=text(b.action,"Action",20),repository=getRepository();
     if(action==="ward-name")await repository.updateWardName(text(b.name,"Ward name",150));
+    else if(action==="admin-phone")await repository.updateAdminPhone(phone(b.phone));
     else if(action==="toggle")await repository.toggleSlotBlocked(identifier(b.slotId,"Time slot"));
     else if(action==="cancel")await repository.cancelAppointment(identifier(b.appointmentId,"Appointment"));
     else if(action==="walk-in")await repository.createWalkInAppointment(identifier(b.slotId,"Time slot"),text(b.name,"Name",150),phone(b.phone));
