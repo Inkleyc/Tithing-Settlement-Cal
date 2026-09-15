@@ -393,6 +393,10 @@ export const rescheduleAppointment = (token: string, newSlotId: string) => {
   return appointment;
 };
 
+let mockWardName = "";
+export const getWardName = () => mockWardName;
+export const updateWardName = (name: string) => { mockWardName = name; return mockWardName; };
+
 export const updateDay = (dayId: string, date: string, notes: string) => {
   const day = seedDays.find((item) => item.id === dayId);
   if (!day) throw new Error("Declaration day not found.");

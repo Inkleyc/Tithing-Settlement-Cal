@@ -24,6 +24,7 @@ const formatTime = (timeValue: string) => {
 };
 
 export function PublicBooking() {
+  const [wardName, setWardName] = useState("");
   const [days, setDays] = useState<DayRecord[]>([]);
   const [slotsByDay, setSlotsByDay] = useState<Record<string, PublicSlotView[]>>({});
   const [selectedDayId, setSelectedDayId] = useState("");
@@ -45,15 +46,19 @@ export function PublicBooking() {
 
   const loadSchedule = async () => {
     const response = await fetch("/api/schedule", { cache: "no-store" });
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data) throw new Error(data?.message ?? "The schedule could not be loaded. Please refresh the page.");
+    setWardName(data.wardName ?? "");
     setDays(data.days);
     setSlotsByDay(data.slots);
     setSelectedDayId((current) => current || data.days[0]?.id || "");
   };
   useEffect(() => {
-    void fetch("/api/schedule", { cache: "no-store" }).then((response) => response.json()).then((data) => {
-      setDays(data.days); setSlotsByDay(data.slots); setSelectedDayId(data.days[0]?.id || "");
-    });
+    void fetch("/api/schedule", { cache: "no-store" }).then(async (response) => {
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data) throw new Error(data?.message ?? "The schedule could not be loaded. Please refresh the page.");
+      setWardName(data.wardName ?? ""); setDays(data.days); setSlotsByDay(data.slots); setSelectedDayId(data.days[0]?.id || "");
+    }).catch((caught) => setError(caught instanceof Error ? caught.message : "The schedule could not be loaded."));
   }, []);
 
   const selectedDay = days.find((day) => day.id === selectedDayId) ?? days[0];
@@ -109,6 +114,7 @@ export function PublicBooking() {
       <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
+            {wardName && <p className="text-xl font-bold text-slate-900">{wardName}</p>}
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Ward tithing declaration</p>
             <h1 className="mt-2 text-3xl font-bold text-slate-900">Choose your appointment</h1>
           </div>

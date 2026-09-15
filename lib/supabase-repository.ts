@@ -33,6 +33,8 @@ async function byToken(token: string) {
 }
 
 export const supabaseRepository: ScheduleRepository = {
+  async getWardName(){const result=await createSupabaseAdminClient().from("app_settings").select("ward_name").eq("id",true).maybeSingle();if(result.error?.code==="PGRST205")return "";fail(result.error);return String(result.data?.ward_name??"");},
+  async updateWardName(name){const result=await createSupabaseAdminClient().from("app_settings").upsert({id:true,ward_name:name,updated_at:new Date().toISOString()}).select("ward_name").single();fail(result.error);return String(result.data?.ward_name??name);},
   getDays: activeDays,
   getSlotsForDay: slotsForDay,
   async getAllPublicSlots() { const days = await activeDays(); return (await Promise.all(days.map(async (value) => (await slotsForDay(value.id)).map((item) => ({ ...item, dayDate: value.date }))))).flat(); },

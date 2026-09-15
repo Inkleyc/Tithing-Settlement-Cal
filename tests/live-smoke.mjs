@@ -7,6 +7,7 @@ const marker = `Automated acceptance test ${Date.now()}`;
 const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const createdDayIds = [];
 let cookie = "";
+let originalWardName;
 
 const request = async (path, options = {}, expected = 200) => {
   const response = await fetch(`${base}${path}`, { ...options, headers: { "Content-Type": "application/json", ...(cookie ? { Cookie: cookie } : {}), ...options.headers } });
@@ -18,10 +19,17 @@ const postAdmin = (body, expected = 200) => request("/api/admin/schedule", { met
 const openSlots = (schedule, dayId) => schedule.slots[dayId].filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked);
 
 try {
+  const settings = await db.from("app_settings").select("ward_name").eq("id", true).single();
+  if (settings.error) throw settings.error;
+  originalWardName = settings.data.ward_name;
   await request("/api/admin/schedule", {}, 401);
   const login = await request("/api/admin/login", { method: "POST", body: JSON.stringify({ password: env.ADMIN_PASSWORD }) });
   cookie = login.response.headers.get("set-cookie")?.split(";", 1)[0] || "";
   if (!cookie) throw new Error("Admin login did not set a session cookie.");
+  const testWardName = `Acceptance Test Ward ${Date.now()}`;
+  await postAdmin({ action: "ward-name", name: testWardName });
+  const publicSettings = (await request("/api/schedule")).body;
+  if (publicSettings.wardName !== testWardName) throw new Error("Ward name was not returned by the public schedule API.");
 
   const dates = ["2098-10-17", "2098-10-18"];
   for (const [index, date] of dates.entries()) {
@@ -73,6 +81,10 @@ try {
   await request("/api/cron/reminders", { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
   console.log("Live acceptance test passed.");
 } finally {
+  if (originalWardName !== undefined) {
+    const restoreSettings = await db.from("app_settings").update({ ward_name: originalWardName }).eq("id", true);
+    if (restoreSettings.error) throw restoreSettings.error;
+  }
   if (createdDayIds.length) {
     const slots = await db.from("time_slots").select("id").in("day_id", createdDayIds);
     if (slots.error) throw slots.error;
