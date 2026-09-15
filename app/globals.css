@@ -53,6 +53,7 @@ select {
   }
 
   .print-area button,
+  .print-area .print-private,
   .print-area th:last-child,
   .print-area td:last-child {
     display: none !important;

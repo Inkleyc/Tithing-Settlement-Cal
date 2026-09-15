@@ -331,8 +331,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   <tr>
                     <th className="px-3 py-2 font-semibold">Time</th>
                     <th className="px-3 py-2 font-semibold">Member</th>
-                    <th className="px-3 py-2 font-semibold">Phone</th>
-                    <th className="px-3 py-2 font-semibold">Email</th>
+                    <th className="print-private px-3 py-2 font-semibold">Phone</th>
+                    <th className="print-private px-3 py-2 font-semibold">Email</th>
                     <th className="px-3 py-2 font-semibold">Status</th>
                     <th className="px-3 py-2 font-semibold">Actions</th>
                   </tr>
@@ -342,8 +342,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                       <tr key={`${selectedDay.day.id}-${slot.id}`}>
                         <td className="px-3 py-2">{slot.isBuffer ? "Buffer" : slot.appointment?.pairedSlotId ? `${formatTime(slot.startTime)} – ${formatTime(selectedDay.slots.find((item) => item.id === slot.appointment?.pairedSlotId)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</td>
                         <td className="px-3 py-2">{slot.appointment?.memberName ?? "—"}</td>
-                        <td className="px-3 py-2">{slot.appointment?.phone ?? "—"}</td>
-                        <td className="px-3 py-2">{slot.appointment?.email ?? "—"}</td>
+                        <td className="print-private px-3 py-2">{slot.appointment?.phone ?? "—"}</td>
+                        <td className="print-private px-3 py-2">{slot.appointment?.email ?? "—"}</td>
                         <td className="px-3 py-2">
                           {slot.appointment ? (slot.appointment.status === "confirmed" ? "Confirmed" : "Cancelled") : slot.isBlocked ? "Blocked" : slot.isBuffer ? "Buffer" : "Open"}
                         </td>
