@@ -160,7 +160,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
             <Printer className="h-4 w-4" />
-            Print roster
+            Print selected day
           </button>
           <form action="/api/admin/logout" method="POST">
             <button type="submit" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white">
@@ -321,7 +321,11 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="hidden print:block print:text-black">Tithing declaration roster</div>
+              <div className="mb-4 hidden print:block print:text-black">
+                <h1 className="text-2xl font-bold">Tithing declaration roster</h1>
+                <p className="mt-1 text-lg">{selectedDay ? formatDate(selectedDay.day.date) : "Selected day"}</p>
+                {selectedDay?.day.notes && <p className="text-sm">{selectedDay.day.notes}</p>}
+              </div>
               <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead className="bg-slate-100 text-slate-700">
                   <tr>
@@ -334,10 +338,9 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {schedule.flatMap((dayGroup) =>
-                    dayGroup.slots.filter((slot) => !slot.appointment?.pairedSlotId || slot.appointment.timeSlotId === slot.id).map((slot) => (
-                      <tr key={`${dayGroup.day.id}-${slot.id}`}>
-                        <td className="px-3 py-2">{slot.isBuffer ? "Buffer" : slot.appointment?.pairedSlotId ? `${formatTime(slot.startTime)} – ${formatTime(dayGroup.slots.find((item) => item.id === slot.appointment?.pairedSlotId)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</td>
+                  {selectedDay?.slots.filter((slot) => !slot.appointment?.pairedSlotId || slot.appointment.timeSlotId === slot.id).map((slot) => (
+                      <tr key={`${selectedDay.day.id}-${slot.id}`}>
+                        <td className="px-3 py-2">{slot.isBuffer ? "Buffer" : slot.appointment?.pairedSlotId ? `${formatTime(slot.startTime)} – ${formatTime(selectedDay.slots.find((item) => item.id === slot.appointment?.pairedSlotId)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</td>
                         <td className="px-3 py-2">{slot.appointment?.memberName ?? "—"}</td>
                         <td className="px-3 py-2">{slot.appointment?.phone ?? "—"}</td>
                         <td className="px-3 py-2">{slot.appointment?.email ?? "—"}</td>
@@ -352,8 +355,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                           )}
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -386,16 +388,6 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         </div>
       )}
 
-      <style jsx>{`
-        @media print {
-          body {
-            background: white;
-          }
-          .print-area {
-            page-break-inside: avoid;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -32,4 +32,29 @@ select {
   body {
     background: white;
   }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: 0 !important;
+    background: white !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .print-area button,
+  .print-area th:last-child,
+  .print-area td:last-child {
+    display: none !important;
+  }
 }
