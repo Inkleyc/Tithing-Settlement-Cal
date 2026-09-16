@@ -26,6 +26,7 @@ const formatTime = (timeValue: string) => {
 };
 
 export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const [activeTab, setActiveTab] = useState<"appointments" | "setup">("appointments");
   const [status, setStatus] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -174,10 +175,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           <h1 className="mt-2 text-3xl font-bold text-slate-900">Ward declaration schedule</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
+          {activeTab === "appointments" && <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
             <Printer className="h-4 w-4" />
             Print selected day
-          </button>
+          </button>}
           <form action="/api/admin/logout" method="POST">
             <button type="submit" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white">
               Log out
@@ -186,8 +187,13 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+        <button role="tab" aria-selected={activeTab === "appointments"} type="button" onClick={() => setActiveTab("appointments")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "appointments" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Appointments</button>
+        <button role="tab" aria-selected={activeTab === "setup"} type="button" onClick={() => setActiveTab("setup")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "setup" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Schedule setup</button>
+      </div>
+
+      <div className={`grid gap-6 ${activeTab === "setup" ? "lg:grid-cols-[380px_minmax(0,1fr)]" : ""}`}>
+        {activeTab === "setup" && <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <form onSubmit={handleWardName} className="mb-6 border-b border-slate-200 pb-6">
             <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Ward name<input required maxLength={150} value={wardName} onChange={(event)=>setWardName(event.target.value)} placeholder="Example 3rd Ward" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
             <button type="submit" className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Save ward name</button>
@@ -241,7 +247,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
 
             {status && <p className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{status}</p>}
           </div>
-        </aside>
+        </aside>}
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -263,7 +269,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
 
           {status && <p role="status" className="mb-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{status}</p>}
 
-          {selectedDay && (
+          {activeTab === "setup" && selectedDay && (
             <div className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:grid-cols-2">
               <form onSubmit={handleEditDay} className="space-y-3">
                 <h3 className="font-semibold text-slate-900">Edit selected day</h3>
@@ -301,9 +307,9 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                 ].join(" ")}>
                   <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                     <span>{slot.isBuffer ? "Buffer" : slot.isBlocked ? "Blocked" : reserved ? "Reserved" : "Open"}</span>
-                    <button type="button" onClick={() => handleToggle(slot.id)} className="text-slate-700 underline">
+                    {activeTab === "setup" && <button type="button" onClick={() => handleToggle(slot.id)} className="text-slate-700 underline">
                       {slot.isBlocked ? "Unblock" : "Block"}
-                    </button>
+                    </button>}
                   </div>
                   <p className="mt-3 text-xl font-bold text-slate-900">{slot.isBuffer || slot.isBlocked ? "—" : appointmentTime}</p>
 
@@ -313,7 +319,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                       {pairedSlot && <p className="font-medium text-emerald-700">20-minute appointment</p>}
                       <p>{appointment.phone}</p>
                       <p>{appointment.email}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      {activeTab === "appointments" && <div className="mt-3 flex flex-wrap gap-2">
                         <a href={`sms:${appointment.phone}?body=${encodeURIComponent(`Hi ${appointment.memberName.split(" ")[0]}, this is the ward executive secretary reminding you of your tithing declaration with the Bishop tomorrow at ${formatTime(slot.startTime)} in the Bishop's office.`)}`} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
                           <MessageSquareText className="h-3.5 w-3.5" />
                           Text Reminder
@@ -322,17 +328,17 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                           <Trash2 className="h-3.5 w-3.5" />
                           Cancel
                         </button>
-                      </div>
+                      </div>}
                     </div>
                   )}
 
-                  {!appointment && !slot.isBuffer && !slot.isBlocked && (
+                  {activeTab === "appointments" && !appointment && !slot.isBuffer && !slot.isBlocked && (
                     <button type="button" onClick={() => { setSelectedSlotId(slot.id); setIsWalkInOpen(true); }} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700">
                       <PlusCircle className="h-3.5 w-3.5" />
                       Add walk-in
                     </button>
                   )}
-                  {!appointment && (
+                  {activeTab === "setup" && !appointment && (
                     <button type="button" onClick={() => handleDeleteSlot(slot.id)} className="mt-2 inline-flex items-center gap-2 rounded-lg border border-red-200 px-2 py-1 text-xs font-medium text-red-700"><Trash2 className="h-3.5 w-3.5" />Delete time</button>
                   )}
                 </div>
@@ -340,7 +346,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             })}
           </div>
 
-          <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-4 print-area">
+          {activeTab === "appointments" && <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-4 print-area">
             <div className="mb-3 flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
               <Lock className="h-4 w-4" />
               Master schedule
@@ -385,7 +391,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                 </tbody>
               </table>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 
