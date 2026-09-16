@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CalendarRange, CheckCircle2, Clock3, Mail, MapPin, Phone, UserRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarRange, Check, CheckCircle2, ChevronDown, Clock3, Mail, MapPin, Phone, UserRound } from "lucide-react";
 import type { DayRecord, PublicSlotView } from "@/lib/mock-store";
 
 const formatDate = (dateValue: string) => {
@@ -28,6 +28,8 @@ export function PublicBooking() {
   const [days, setDays] = useState<DayRecord[]>([]);
   const [slotsByDay, setSlotsByDay] = useState<Record<string, PublicSlotView[]>>({});
   const [selectedDayId, setSelectedDayId] = useState("");
+  const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+  const dateMenuRef = useRef<HTMLDivElement>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState({
@@ -61,9 +63,18 @@ export function PublicBooking() {
       setWardName(data.wardName ?? ""); setDays(data.days); setSlotsByDay(data.slots); setSelectedDayId(data.days[0]?.id || "");
     }).catch((caught) => setError(caught instanceof Error ? caught.message : "The schedule could not be loaded."));
   }, []);
+  useEffect(() => {
+    if (!isDateMenuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => { if (!dateMenuRef.current?.contains(event.target as Node)) setIsDateMenuOpen(false); };
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setIsDateMenuOpen(false); };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => { document.removeEventListener("mousedown", closeOnOutsideClick); document.removeEventListener("keydown", closeOnEscape); };
+  }, [isDateMenuOpen]);
 
   const selectedDay = days.find((day) => day.id === selectedDayId) ?? days[0];
   const slots = selectedDay ? slotsByDay[selectedDay.id] ?? [] : [];
+  const openCountFor = (dayId: string) => (slotsByDay[dayId] ?? []).filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked).length;
 
   const handleOpenBooking = (slotId: string) => {
     if (selectedDay) {
@@ -136,7 +147,7 @@ export function PublicBooking() {
         <select
           value={selectedDayId}
           onChange={(event) => setSelectedDayId(event.target.value)}
-          className="mt-4 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-medium text-slate-900"
+          className="hidden"
         >
           {days.map((day) => {
             const openCount = (slotsByDay[day.id] ?? []).filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked).length;
@@ -174,6 +185,33 @@ export function PublicBooking() {
               </button>
             );
           })}
+        </div>
+
+        <div ref={dateMenuRef} className="relative mt-4">
+          <button type="button" aria-haspopup="listbox" aria-expanded={isDateMenuOpen} onClick={() => setIsDateMenuOpen((open) => !open)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:border-emerald-300 hover:bg-emerald-50/40 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100">
+            <span>
+              <span className="block text-base font-semibold text-slate-900">{selectedDay ? formatDate(selectedDay.date) : "Choose a date"}</span>
+              {selectedDay && <span className="mt-0.5 block text-sm text-slate-500">{openCountFor(selectedDay.id)} open appointments</span>}
+            </span>
+            <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition ${isDateMenuOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {isDateMenuOpen && <div role="listbox" aria-label="Available appointment dates" className="absolute left-0 right-0 z-30 mt-2 max-h-80 space-y-2 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+            {days.map((day) => {
+              const openCount = openCountFor(day.id);
+              const isSelected = day.id === selectedDayId;
+              return <button key={day.id} role="option" aria-selected={isSelected} type="button" onClick={() => { setSelectedDayId(day.id); setIsDateMenuOpen(false); }} className={`flex w-full items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left transition ${isSelected ? "border-emerald-300 bg-emerald-50" : "border-transparent hover:border-slate-200 hover:bg-slate-50"}`}>
+                <span>
+                  <span className="block font-semibold text-slate-900">{formatDate(day.date)}</span>
+                  {day.notes && <span className="mt-0.5 block text-sm text-slate-500">{day.notes}</span>}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${openCount ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>{openCount} open</span>
+                  {isSelected && <Check className="h-4 w-4 text-emerald-700" />}
+                </span>
+              </button>;
+            })}
+          </div>}
         </div>
       </section>
 
