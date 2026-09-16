@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 
 export type AppointmentStatus = "confirmed" | "cancelled";
 
@@ -230,7 +231,7 @@ export const generateScheduleForDay = (
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Choose a valid date.");
   if (!Number.isInteger(intervalMinutes) || intervalMinutes < 5 || intervalMinutes > 60) throw new Error("Interval must be between 5 and 60 minutes.");
   if (!Number.isInteger(bufferEveryMinutes) || bufferEveryMinutes < intervalMinutes) throw new Error("Buffer interval is invalid.");
-  const dayId = `day-${Date.now()}`;
+  const dayId = `day-${randomUUID()}`;
   const day: DayRecord = {
     id: dayId,
     date,
@@ -290,7 +291,7 @@ export const createWalkInAppointment = (slotId: string, memberName: string, phon
   const slot = ensureSlotExists(slotId);
   if (getBookedSlotIds().has(slot.id)) throw new Error("This slot is already reserved.");
   const appointment: AppointmentRecord = {
-    id: `appt-${Date.now()}`,
+    id: `appt-${randomUUID()}`,
     timeSlotId: slot.id,
     pairedSlotId: null,
     memberName,
@@ -347,7 +348,7 @@ export const createReservation = ({
   }
 
   const appointment: AppointmentRecord = {
-    id: `appt-${Date.now()}`,
+    id: `appt-${randomUUID()}`,
     timeSlotId: primarySlot.id,
     pairedSlotId,
     memberName,
@@ -414,7 +415,7 @@ export const addTimeSlot = (dayId: string, startTime: string, endTime: string, i
   if (!seedDays.some((day) => day.id === dayId)) throw new Error("Declaration day not found.");
   if (mockSlots.some((slot) => slot.dayId === dayId && slot.startTime === startTime)) throw new Error("A slot already starts at that time.");
   if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime) || startTime >= endTime) throw new Error("End time must be after start time.");
-  const created = makeSlot(`slot-${Date.now()}`, dayId, startTime, endTime, isBuffer); mockSlots.push(created); return created;
+  const created = makeSlot(`slot-${randomUUID()}`, dayId, startTime, endTime, isBuffer); mockSlots.push(created); return created;
 };
 
 export const deleteTimeSlot = (slotId: string) => {
