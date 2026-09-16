@@ -127,6 +127,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   };
 
   const handleDeleteSlot = async (slotId: string) => {
+    if (!window.confirm("Delete this time from the schedule?")) return;
+    setStatus("Deleting time...");
     try { await mutate({ action: "delete-slot", slotId }); setStatus("Time slot deleted."); }
     catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to delete the slot."); }
   };
@@ -258,6 +260,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               ))}
             </div>
           </div>
+
+          {status && <p role="status" className="mb-4 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{status}</p>}
 
           {selectedDay && (
             <div className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:grid-cols-2">

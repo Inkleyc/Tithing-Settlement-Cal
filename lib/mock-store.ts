@@ -420,7 +420,13 @@ export const addTimeSlot = (dayId: string, startTime: string, endTime: string, i
 export const deleteTimeSlot = (slotId: string) => {
   const index = mockSlots.findIndex((slot) => slot.id === slotId);
   if (index < 0) throw new Error("Time slot not found.");
-  if (mockAppointments.some((item) => item.timeSlotId === slotId || item.pairedSlotId === slotId)) throw new Error("A slot with appointment history cannot be deleted.");
+  if (mockAppointments.some((item) => item.status === "confirmed" && (item.timeSlotId === slotId || item.pairedSlotId === slotId))) {
+    throw new Error("Cancel the active appointment before deleting this time.");
+  }
+  for (let appointmentIndex = mockAppointments.length - 1; appointmentIndex >= 0; appointmentIndex -= 1) {
+    const item = mockAppointments[appointmentIndex];
+    if (item.status === "cancelled" && (item.timeSlotId === slotId || item.pairedSlotId === slotId)) mockAppointments.splice(appointmentIndex, 1);
+  }
   mockSlots.splice(index, 1);
 };
 

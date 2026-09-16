@@ -53,7 +53,17 @@ export const supabaseRepository: ScheduleRepository = {
   },
   async updateDay(id,date,notes){const result=await createSupabaseAdminClient().from("days").update({date,notes}).eq("id",id).select().maybeSingle();fail(result.error);if(!result.data)throw new Error("Declaration day not found.");return day(result.data as Row);},
   async addTimeSlot(dayId,startTime,endTime,isBuffer){const result=await createSupabaseAdminClient().from("time_slots").insert({day_id:dayId,start_time:startTime,end_time:endTime,is_buffer:isBuffer}).select().single();fail(result.error);return slot(result.data as Row);},
-  async deleteTimeSlot(id){const client=createSupabaseAdminClient();const history=await client.from("appointments").select("id").or(`time_slot_id.eq.${id},paired_slot_id.eq.${id}`).limit(1);fail(history.error);if(history.data?.length)throw new Error("A slot with appointment history cannot be deleted.");const result=await client.from("time_slots").delete().eq("id",id).select("id").maybeSingle();fail(result.error);if(!result.data)throw new Error("Time slot not found.");},
+  async deleteTimeSlot(id){
+    const client=createSupabaseAdminClient();
+    const active=await client.from("appointments").select("id").eq("status","confirmed").or(`time_slot_id.eq.${id},paired_slot_id.eq.${id}`).limit(1);
+    fail(active.error);
+    if(active.data?.length)throw new Error("Cancel the active appointment before deleting this time.");
+    const history=await client.from("appointments").delete().eq("status","cancelled").or(`time_slot_id.eq.${id},paired_slot_id.eq.${id}`);
+    fail(history.error);
+    const result=await client.from("time_slots").delete().eq("id",id).select("id").maybeSingle();
+    fail(result.error);
+    if(!result.data)throw new Error("Time slot not found.");
+  },
   async toggleSlotBlocked(id) { const client = createSupabaseAdminClient(); const [current, bookings] = await Promise.all([client.from("time_slots").select("is_blocked").eq("id", id).maybeSingle(), client.from("appointments").select("id").eq("status", "confirmed").or(`time_slot_id.eq.${id},paired_slot_id.eq.${id}`).limit(1)]); fail(current.error); fail(bookings.error); if (!current.data) throw new Error("Selected time slot no longer exists."); if (bookings.data?.length) throw new Error("A reserved slot cannot be blocked."); const result = await client.from("time_slots").update({ is_blocked: !current.data.is_blocked }).eq("id", id).select().single(); fail(result.error); return result.data; },
   async cancelAppointment(id) { const result = await createSupabaseAdminClient().from("appointments").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", id).select().maybeSingle(); fail(result.error); if (!result.data) throw new Error("Appointment not found."); return appointment(result.data as Row); },
   async createWalkInAppointment(slotId, memberName, phone) { return this.createReservation({ dayId: "", slotId, memberName, phone, email: "walk-in@ward.local", isLargeFamily: false }); },
