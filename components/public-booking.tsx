@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CalendarRange, Check, CheckCircle2, ChevronDown, Clock3, Mail, MapPin, Phone, UserRound } from "lucide-react";
+import { availableBookingStarts } from "@/lib/availability";
 import type { DayRecord, PublicSlotView } from "@/lib/mock-store";
 
 const formatDate = (dateValue: string) => {
@@ -74,7 +75,8 @@ export function PublicBooking() {
 
   const selectedDay = days.find((day) => day.id === selectedDayId) ?? days[0];
   const slots = selectedDay ? slotsByDay[selectedDay.id] ?? [] : [];
-  const openCountFor = (dayId: string) => (slotsByDay[dayId] ?? []).filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked).length;
+  const availableStartsFor = (dayId: string) => availableBookingStarts(slotsByDay[dayId] ?? [], form.isLargeFamily);
+  const openCountFor = (dayId: string) => availableStartsFor(dayId).length;
 
   const handleOpenBooking = (slotId: string) => {
     if (selectedDay) {
@@ -101,11 +103,12 @@ export function PublicBooking() {
     const appointment = payload.appointment;
 
     const slot = slots.find((item) => item.id === selectedSlotId);
+    const pairedSlot = form.isLargeFamily ? slots.find((item) => item.startTime === slot?.endTime) : undefined;
 
     setSuccess({
       name: form.memberName,
       date: formatDate(selectedDay.date),
-      time: formatTime(slot?.startTime ?? ""),
+      time: pairedSlot ? `${formatTime(slot?.startTime ?? "")}–${formatTime(pairedSlot.endTime)}` : formatTime(slot?.startTime ?? ""),
       token: appointment.rescheduleToken,
       emailDelivered: payload.emailDelivered !== false,
     });
@@ -120,7 +123,7 @@ export function PublicBooking() {
     }
   };
 
-  const openSlots = slots.filter((slot) => !slot.isReserved && !slot.isBuffer && !slot.isBlocked);
+  const openSlots = selectedDay ? availableStartsFor(selectedDay.id) : [];
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-8">
@@ -139,6 +142,21 @@ export function PublicBooking() {
       </header>
 
       <section className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Appointment length</p>
+          <div className="mt-3 grid grid-cols-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+            <button type="button" aria-pressed={!form.isLargeFamily} onClick={() => setForm((current) => ({ ...current, isLargeFamily: false }))} className={`rounded-xl px-3 py-3 text-sm font-semibold transition ${!form.isLargeFamily ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-800"}`}>
+              10 minutes
+              <span className="mt-0.5 block text-xs font-normal">Standard</span>
+            </button>
+            <button type="button" aria-pressed={form.isLargeFamily} onClick={() => setForm((current) => ({ ...current, isLargeFamily: true }))} className={`rounded-xl px-3 py-3 text-sm font-semibold transition ${form.isLargeFamily ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>
+              20 minutes
+              <span className="mt-0.5 block text-xs font-normal">Larger family</span>
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-slate-500">{form.isLargeFamily ? "Only times with two consecutive openings are shown." : "Choose a standard 10-minute appointment."}</p>
+        </div>
+
         <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
           <CalendarRange className="h-4 w-4" />
           Choose a date
@@ -253,9 +271,8 @@ export function PublicBooking() {
                       {reserved ? "Reserved" : slot.isBuffer ? "Buffer / Catch-up" : slot.isBlocked ? "Blocked" : "Open"}
                     </span>
                   </div>
-                  <p className="mt-4 text-xl font-semibold">
-                    {slot.isBuffer || slot.isBlocked || reserved ? "—" : formatTime(slot.startTime)}
-                  </p>
+                  <p className="mt-4 text-xl font-semibold">{form.isLargeFamily ? `${formatTime(slot.startTime)}–${formatTime(slots.find((item) => item.startTime === slot.endTime)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</p>
+                  {form.isLargeFamily && <p className="mt-1 text-sm text-emerald-700">20-minute appointment</p>}
                 </button>
               );
             })}
@@ -311,15 +328,7 @@ export function PublicBooking() {
                 />
               </label>
 
-              <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={form.isLargeFamily}
-                  onChange={(event) => setForm((current) => ({ ...current, isLargeFamily: event.target.checked }))}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                Reserve double block (20 minutes for large family)
-              </label>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-900">{form.isLargeFamily ? "20-minute appointment — two consecutive times will be reserved." : "10-minute appointment"}</div>
 
               {error && <p className="text-sm font-medium text-red-600">{error}</p>}
               <button type="submit" className="w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700">
