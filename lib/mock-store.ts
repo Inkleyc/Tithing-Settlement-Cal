@@ -411,6 +411,23 @@ export const updateDay = (dayId: string, date: string, notes: string) => {
   day.date = date; day.notes = notes; return day;
 };
 
+export const deleteDay = (dayId: string) => {
+  const dayIndex = seedDays.findIndex((day) => day.id === dayId);
+  if (dayIndex < 0) throw new Error("Declaration day not found.");
+  const slotIds = new Set(mockSlots.filter((slot) => slot.dayId === dayId).map((slot) => slot.id));
+  if (mockAppointments.some((item) => item.status === "confirmed" && (slotIds.has(item.timeSlotId) || (item.pairedSlotId ? slotIds.has(item.pairedSlotId) : false)))) {
+    throw new Error("Cancel all active appointments before deleting this day.");
+  }
+  for (let appointmentIndex = mockAppointments.length - 1; appointmentIndex >= 0; appointmentIndex -= 1) {
+    const item = mockAppointments[appointmentIndex];
+    if (slotIds.has(item.timeSlotId) || (item.pairedSlotId ? slotIds.has(item.pairedSlotId) : false)) mockAppointments.splice(appointmentIndex, 1);
+  }
+  for (let slotIndex = mockSlots.length - 1; slotIndex >= 0; slotIndex -= 1) {
+    if (mockSlots[slotIndex].dayId === dayId) mockSlots.splice(slotIndex, 1);
+  }
+  seedDays.splice(dayIndex, 1);
+};
+
 export const addTimeSlot = (dayId: string, startTime: string, endTime: string, isBuffer: boolean) => {
   if (!seedDays.some((day) => day.id === dayId)) throw new Error("Declaration day not found.");
   if (mockSlots.some((slot) => slot.dayId === dayId && slot.startTime === startTime)) throw new Error("A slot already starts at that time.");

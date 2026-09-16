@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cancelAppointment, createReservation, deleteTimeSlot, getDays, getSlotsForDay, rescheduleAppointment } from "../lib/mock-store";
+import { cancelAppointment, createReservation, deleteDay, deleteTimeSlot, generateScheduleForDay, getDays, getSlotsForDay, rescheduleAppointment } from "../lib/mock-store";
 
 describe("booking invariants", () => {
   it("rejects double booking", () => {
@@ -21,5 +21,14 @@ describe("booking invariants", () => {
     cancelAppointment(appointment.id);
     deleteTimeSlot(slot.id);
     expect(getSlotsForDay(day.id).some((value)=>value.id===slot.id)).toBe(false);
+  });
+  it("deletes a whole day after protecting and clearing appointment history", () => {
+    const {day}=generateScheduleForDay("2099-11-21","09:00","10:00",10,50,"Delete day test");
+    const slot=getSlotsForDay(day.id).find((value)=>!value.isBuffer)!;
+    const appointment=createReservation({dayId:day.id,slotId:slot.id,memberName:"Day Delete Test",email:"day-delete@test.local",phone:"8015550104",isLargeFamily:false});
+    expect(()=>deleteDay(day.id)).toThrow(/Cancel all active appointments/);
+    cancelAppointment(appointment.id);
+    deleteDay(day.id);
+    expect(getDays().some((value)=>value.id===day.id)).toBe(false);
   });
 });

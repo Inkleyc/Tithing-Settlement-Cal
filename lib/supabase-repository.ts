@@ -52,6 +52,22 @@ export const supabaseRepository: ScheduleRepository = {
     const result = await createSupabaseAdminClient().rpc("generate_schedule", { p_date: date, p_start_time: startTime, p_end_time: endTime, p_interval_minutes: intervalMinutes, p_buffer_every_minutes: bufferEveryMinutes, p_notes: notes }); fail(result.error); return result.data;
   },
   async updateDay(id,date,notes){const result=await createSupabaseAdminClient().from("days").update({date,notes}).eq("id",id).select().maybeSingle();fail(result.error);if(!result.data)throw new Error("Declaration day not found.");return day(result.data as Row);},
+  async deleteDay(id){
+    const client=createSupabaseAdminClient();
+    const slots=await client.from("time_slots").select("id").eq("day_id",id);
+    fail(slots.error);
+    const slotIds=(slots.data??[]).map((item)=>String(item.id));
+    if(slotIds.length){
+      const active=await client.from("appointments").select("id").eq("status","confirmed").or(`time_slot_id.in.(${slotIds.join(",")}),paired_slot_id.in.(${slotIds.join(",")})`).limit(1);
+      fail(active.error);
+      if(active.data?.length)throw new Error("Cancel all active appointments before deleting this day.");
+      const history=await client.from("appointments").delete().or(`time_slot_id.in.(${slotIds.join(",")}),paired_slot_id.in.(${slotIds.join(",")})`);
+      fail(history.error);
+    }
+    const result=await client.from("days").delete().eq("id",id).select("id").maybeSingle();
+    fail(result.error);
+    if(!result.data)throw new Error("Declaration day not found.");
+  },
   async addTimeSlot(dayId,startTime,endTime,isBuffer){const result=await createSupabaseAdminClient().from("time_slots").insert({day_id:dayId,start_time:startTime,end_time:endTime,is_buffer:isBuffer}).select().single();fail(result.error);return slot(result.data as Row);},
   async deleteTimeSlot(id){
     const client=createSupabaseAdminClient();

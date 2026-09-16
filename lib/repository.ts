@@ -23,6 +23,7 @@ export interface ScheduleRepository {
   getAdminSchedule(): Promise<AdminSchedule>;
   generateScheduleForDay(date: string, startTime: string, endTime: string, intervalMinutes: number, bufferEveryMinutes: number, notes?: string): Promise<unknown>;
   updateDay(dayId: string, date: string, notes: string): Promise<unknown>;
+  deleteDay(dayId: string): Promise<void>;
   addTimeSlot(dayId: string, startTime: string, endTime: string, isBuffer: boolean): Promise<unknown>;
   deleteTimeSlot(slotId: string): Promise<void>;
   toggleSlotBlocked(slotId: string): Promise<unknown>;
@@ -47,6 +48,7 @@ const mockRepository: ScheduleRepository = {
   getAdminSchedule: async () => mock.getAdminSchedule(),
   generateScheduleForDay: async (...args) => mock.generateScheduleForDay(...args),
   updateDay: async (...args) => mock.updateDay(...args),
+  deleteDay: async (id) => { mock.deleteDay(id); },
   addTimeSlot: async (...args) => mock.addTimeSlot(...args),
   deleteTimeSlot: async (id) => { mock.deleteTimeSlot(id); },
   toggleSlotBlocked: async (id) => mock.toggleSlotBlocked(id),

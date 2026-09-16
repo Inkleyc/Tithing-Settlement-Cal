@@ -49,7 +49,37 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   });
 
   const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); return data.schedule as AdminSchedule; };
-  useEffect(() => { if (!isAuthenticated) return; void fetch("/api/admin/schedule", { cache: "no-store" }).then((r) => r.json()).then((data) => { const initial=data.schedule?.[0]; setSchedule(data.schedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setDayId((value) => value || initial?.day.id || ""); if(initial)setDayForm({date:initial.day.date,notes:initial.day.notes}); }); }, [isAuthenticated]);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let active = true;
+    let firstLoad = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/admin/schedule", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+        if (!active) return;
+        const nextSchedule = (data.schedule ?? []) as AdminSchedule;
+        setSchedule(nextSchedule);
+        setDayId((current) => nextSchedule.some((item) => item.day.id === current) ? current : nextSchedule[0]?.day.id ?? "");
+        if (firstLoad) {
+          const initial = nextSchedule[0];
+          setWardName(data.wardName ?? "");
+          setAdminPhone(data.adminPhone ?? "");
+          if (initial) setDayForm({ date: initial.day.date, notes: initial.day.notes });
+          firstLoad = false;
+        }
+      } catch (caught) {
+        if (active) setStatus(caught instanceof Error ? caught.message : "Unable to refresh appointments.");
+      }
+    };
+    const refreshOnFocus = () => { void refresh(); };
+    void refresh();
+    const interval = window.setInterval(refreshOnFocus, 10_000);
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnFocus);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", refreshOnFocus); document.removeEventListener("visibilitychange", refreshOnFocus); };
+  }, [isAuthenticated]);
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -119,6 +149,18 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     event.preventDefault();
     try { await mutate({ action: "edit-day", dayId, ...dayForm }); setStatus("Declaration day updated."); }
     catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to update the day."); }
+  };
+
+  const handleDeleteDay = async () => {
+    if (!selectedDay || !window.confirm(`Delete ${formatDate(selectedDay.day.date)} and all of its times? This cannot be undone.`)) return;
+    setStatus("Deleting day...");
+    try {
+      const next = await mutate({ action: "delete-day", dayId: selectedDay.day.id });
+      const replacement = next[0];
+      setDayId(replacement?.day.id ?? "");
+      setDayForm(replacement ? { date: replacement.day.date, notes: replacement.day.notes } : { date: "", notes: "" });
+      setStatus("Declaration day deleted.");
+    } catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to delete the day."); }
   };
 
   const handleAddSlot = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -191,6 +233,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         <button role="tab" aria-selected={activeTab === "appointments"} type="button" onClick={() => setActiveTab("appointments")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "appointments" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Appointments</button>
         <button role="tab" aria-selected={activeTab === "setup"} type="button" onClick={() => setActiveTab("setup")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "setup" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Schedule setup</button>
       </div>
+
+      {activeTab === "appointments" && <p className="mb-4 text-right text-xs font-medium text-emerald-700">Updates automatically every 10 seconds</p>}
 
       <div className={`grid gap-6 ${activeTab === "setup" ? "lg:grid-cols-[380px_minmax(0,1fr)]" : ""}`}>
         {activeTab === "setup" && <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -277,7 +321,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   <label className="text-sm font-medium text-slate-700">Date<input required type="date" value={dayForm.date} onChange={(event)=>setDayForm((current)=>({...current,date:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                   <label className="text-sm font-medium text-slate-700">Notes<input value={dayForm.notes} maxLength={255} onChange={(event)=>setDayForm((current)=>({...current,notes:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
-                <button type="submit" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Save day</button>
+                <div className="flex flex-wrap gap-2">
+                  <button type="submit" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Save day</button>
+                  <button type="button" onClick={handleDeleteDay} className="rounded-xl border border-red-300 px-3 py-2 text-sm font-semibold text-red-700">Delete entire day</button>
+                </div>
               </form>
               <form onSubmit={handleAddSlot} className="space-y-3">
                 <h3 className="font-semibold text-slate-900">Add one time slot</h3>

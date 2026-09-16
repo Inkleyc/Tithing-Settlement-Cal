@@ -13,6 +13,7 @@ export async function POST(request:Request){
     else if(action==="cancel")await repository.cancelAppointment(identifier(b.appointmentId,"Appointment"));
     else if(action==="walk-in")await repository.createWalkInAppointment(identifier(b.slotId,"Time slot"),text(b.name,"Name",150),phone(b.phone));
     else if(action==="edit-day")await repository.updateDay(identifier(b.dayId,"Day"),text(b.date,"Date",10),typeof b.notes==="string"?b.notes.trim().slice(0,255):"");
+    else if(action==="delete-day")await repository.deleteDay(identifier(b.dayId,"Day"));
     else if(action==="add-slot"){const start=text(b.startTime,"Start time",5),end=text(b.endTime,"End time",5);if(!/^\d{2}:\d{2}$/.test(start)||!/^\d{2}:\d{2}$/.test(end)||start>=end)throw new Error("End time must be after start time.");await repository.addTimeSlot(identifier(b.dayId,"Day"),start,end,b.isBuffer===true);}
     else if(action==="delete-slot")await repository.deleteTimeSlot(identifier(b.slotId,"Time slot"));
     else if(action==="generate"){const interval=Number(b.intervalMinutes),buffer=Number(b.bufferEveryMinutes);if(!Number.isInteger(interval)||interval<5||interval>60)throw new Error("Interval must be between 5 and 60 minutes.");if(!Number.isInteger(buffer)||buffer<interval||buffer>180)throw new Error("Buffer interval is invalid.");await repository.generateScheduleForDay(text(b.date,"Date",10),text(b.startTime,"Start time",5),text(b.endTime,"End time",5),interval,buffer,typeof b.notes==="string"?b.notes.trim().slice(0,255):"");}
