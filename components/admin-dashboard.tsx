@@ -370,7 +370,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                       <p>{appointment.phone}</p>
                       <p>{appointment.email}</p>
                       {activeTab === "appointments" && <div className="mt-3 flex flex-wrap gap-2">
-                        <a href={`sms:${appointment.phone}?body=${encodeURIComponent(`Hi ${appointment.memberName.split(" ")[0]}, this is the ward executive secretary reminding you of your tithing declaration with the Bishop tomorrow at ${formatTime(slot.startTime)} in the Bishop's office.`)}`} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
+                        <a href={`sms:${appointment.phone}?body=${encodeURIComponent(`Hi ${appointment.memberName.split(" ")[0]}, this is the ward executive secretary reminding you of your tithing declaration with the Bishop on ${selectedDay ? formatDate(selectedDay.day.date) : "the scheduled date"} at ${formatTime(slot.startTime)} in the Bishop's office.`)}`} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
                           <MessageSquareText className="h-3.5 w-3.5" />
                           Text Reminder
                         </a>
