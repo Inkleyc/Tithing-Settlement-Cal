@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarClock, Lock, MessageSquareText, PlusCircle, Printer, Shield, Trash2, X } from "lucide-react";
+import { ShareSchedule } from "@/components/share-schedule";
 import type { DayRecord, PublicSlotView, AppointmentRecord } from "@/lib/mock-store";
 
 type AdminSchedule = Array<{ day: DayRecord; slots: Array<PublicSlotView & { appointment?: AppointmentRecord }> }>;
@@ -26,7 +27,7 @@ const formatTime = (timeValue: string) => {
 };
 
 export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const [activeTab, setActiveTab] = useState<"appointments" | "setup">("appointments");
+  const [activeTab, setActiveTab] = useState<"appointments" | "setup" | "share">("appointments");
   const [status, setStatus] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -229,14 +230,16 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         </div>
       </div>
 
-      <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+      <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-3 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
         <button role="tab" aria-selected={activeTab === "appointments"} type="button" onClick={() => setActiveTab("appointments")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "appointments" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Appointments</button>
         <button role="tab" aria-selected={activeTab === "setup"} type="button" onClick={() => setActiveTab("setup")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "setup" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Schedule setup</button>
+        <button role="tab" aria-selected={activeTab === "share"} type="button" onClick={() => setActiveTab("share")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "share" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Share</button>
       </div>
 
       {activeTab === "appointments" && <p className="mb-4 text-right text-xs font-medium text-emerald-700">Updates automatically every 10 seconds</p>}
+      {activeTab === "share" && <ShareSchedule wardName={wardName} />}
 
-      <div className={`grid gap-6 ${activeTab === "setup" ? "lg:grid-cols-[380px_minmax(0,1fr)]" : ""}`}>
+      {activeTab !== "share" && <div className={`grid gap-6 ${activeTab === "setup" ? "lg:grid-cols-[380px_minmax(0,1fr)]" : ""}`}>
         {activeTab === "setup" && <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <form onSubmit={handleWardName} className="mb-6 border-b border-slate-200 pb-6">
             <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Ward name<input required maxLength={150} value={wardName} onChange={(event)=>setWardName(event.target.value)} placeholder="Example 3rd Ward" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
@@ -440,7 +443,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             </div>
           </div>}
         </div>
-      </div>
+      </div>}
 
       {isWalkInOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
