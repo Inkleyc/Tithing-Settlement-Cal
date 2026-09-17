@@ -268,23 +268,14 @@ export const generateScheduleForDay = (
 
 export const toggleSlotBlocked = (slotId: string) => {
   const slot = mockSlots.find((item) => item.id === slotId);
-  if (!slot) return null;
+  if (!slot) throw new Error("Selected time slot no longer exists.");
 
   if (getBookedSlotIds().has(slotId)) {
     throw new Error("A reserved slot cannot be blocked.");
   }
-  slot.isBlocked = !slot.isBlocked;
-  return slot;
-};
-
-export const toggleSlotBuffer = (slotId: string) => {
-  const slot = mockSlots.find((item) => item.id === slotId);
-  if (!slot) throw new Error("Selected time slot no longer exists.");
-  if (getBookedSlotIds().has(slotId)) {
-    throw new Error("A reserved slot cannot be changed to or from a buffer.");
-  }
-  slot.isBuffer = !slot.isBuffer;
-  slot.isBlocked = false;
+  const unavailable = slot.isBlocked || slot.isBuffer;
+  slot.isBuffer = false;
+  slot.isBlocked = !unavailable;
   return slot;
 };
 

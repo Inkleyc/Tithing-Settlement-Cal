@@ -39,13 +39,12 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [walkInForm, setWalkInForm] = useState({ name: "", phone: "" });
   const [dayForm, setDayForm] = useState({ date: "", notes: "" });
-  const [slotForm, setSlotForm] = useState({ startTime: "", endTime: "", isBuffer: false });
+  const [slotForm, setSlotForm] = useState({ startTime: "", endTime: "" });
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
     startTime: "13:00",
     endTime: "17:00",
     intervalMinutes: 10,
-    bufferEveryMinutes: 50,
     notes: "",
   });
 
@@ -118,13 +117,6 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to update the slot."); }
   };
 
-  const handleToggleBuffer = async (slotId: string, isBuffer: boolean) => {
-    try {
-      await mutate({ action: "toggle-buffer", slotId });
-      setStatus(isBuffer ? "Buffer changed to a normal appointment time." : "Appointment time changed to a buffer.");
-    } catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to update the slot."); }
-  };
-
   const handleCancel = async (appointmentId: string) => {
     await mutate({ action: "cancel", appointmentId });
     setStatus("Appointment cancelled and slot released.");
@@ -173,7 +165,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
 
   const handleAddSlot = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    try { await mutate({ action: "add-slot", dayId, ...slotForm }); setSlotForm({ startTime: "", endTime: "", isBuffer: false }); setStatus("Time slot added."); }
+    try { await mutate({ action: "add-slot", dayId, ...slotForm }); setSlotForm({ startTime: "", endTime: "" }); setStatus("Time slot added."); }
     catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to add the slot."); }
   };
 
@@ -278,16 +270,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               </label>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Interval (min)
-                <input type="number" min={5} max={60} step={5} value={scheduleForm.intervalMinutes} onChange={(event) => setScheduleForm((current) => ({ ...current, intervalMinutes: Number(event.target.value) }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                Buffer every (min)
-                <input type="number" min={10} max={180} step={10} value={scheduleForm.bufferEveryMinutes} onChange={(event) => setScheduleForm((current) => ({ ...current, bufferEveryMinutes: Number(event.target.value) }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
-              </label>
-            </div>
+            <label className="block text-sm font-medium text-slate-700">
+              Interval (min)
+              <input type="number" min={5} max={60} step={5} value={scheduleForm.intervalMinutes} onChange={(event) => setScheduleForm((current) => ({ ...current, intervalMinutes: Number(event.target.value) }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
+            </label>
 
             <label className="block text-sm font-medium text-slate-700">
               Notes
@@ -342,7 +328,6 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   <label className="text-sm font-medium text-slate-700">Start<input required type="time" value={slotForm.startTime} onChange={(event)=>setSlotForm((current)=>({...current,startTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                   <label className="text-sm font-medium text-slate-700">End<input required type="time" value={slotForm.endTime} onChange={(event)=>setSlotForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={slotForm.isBuffer} onChange={(event)=>setSlotForm((current)=>({...current,isBuffer:event.target.checked}))} />Buffer / catch-up time</label>
                 <button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Add time</button>
               </form>
             </div>
@@ -360,17 +345,15 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                 <div key={slot.id} className={[
                   "rounded-2xl border p-4",
                   pairedSlot ? "sm:col-span-2" : "",
-                  slot.isBlocked ? "border-red-200 bg-red-50" : slot.isBuffer ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-slate-50",
+                  slot.isBlocked || slot.isBuffer ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50",
                 ].join(" ")}>
                   <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    <span>{slot.isBuffer ? "Buffer" : slot.isBlocked ? "Blocked" : reserved ? "Reserved" : "Open"}</span>
-                    {activeTab === "setup" && !appointment && <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => handleToggleBuffer(slot.id, slot.isBuffer)} className="text-amber-700 underline">
-                        {slot.isBuffer ? "Make appointment" : "Make buffer"}
+                    <span>{slot.isBuffer || slot.isBlocked ? "Blocked" : reserved ? "Reserved" : "Open"}</span>
+                    {activeTab === "appointments" && !appointment && <div className="flex items-center gap-2 normal-case tracking-normal text-slate-600">
+                      <span>Blocked</span>
+                      <button type="button" role="switch" aria-checked={slot.isBuffer || slot.isBlocked} aria-label={`${slot.isBuffer || slot.isBlocked ? "Unblock" : "Block"} ${formatTime(slot.startTime)}`} onClick={() => handleToggle(slot.id)} className={`relative h-5 w-9 rounded-full transition ${slot.isBuffer || slot.isBlocked ? "bg-slate-700" : "bg-slate-300"}`}>
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition ${slot.isBuffer || slot.isBlocked ? "left-[18px]" : "left-0.5"}`} />
                       </button>
-                      {!slot.isBuffer && <button type="button" onClick={() => handleToggle(slot.id)} className="text-slate-700 underline">
-                        {slot.isBlocked ? "Unblock" : "Block"}
-                      </button>}
                     </div>}
                   </div>
                   <p className="mt-3 text-xl font-bold text-slate-900">{slot.isBuffer || slot.isBlocked ? "—" : appointmentTime}</p>
@@ -434,12 +417,12 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                 <tbody className="divide-y divide-slate-200 bg-white">
                   {selectedDay?.slots.filter((slot) => !slot.appointment?.pairedSlotId || slot.appointment.timeSlotId === slot.id).map((slot) => (
                       <tr key={`${selectedDay.day.id}-${slot.id}`}>
-                        <td className="px-3 py-2">{slot.isBuffer ? "Buffer" : slot.appointment?.pairedSlotId ? `${formatTime(slot.startTime)} – ${formatTime(selectedDay.slots.find((item) => item.id === slot.appointment?.pairedSlotId)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</td>
+                        <td className="px-3 py-2">{slot.isBuffer || slot.isBlocked ? "Blocked" : slot.appointment?.pairedSlotId ? `${formatTime(slot.startTime)} – ${formatTime(selectedDay.slots.find((item) => item.id === slot.appointment?.pairedSlotId)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</td>
                         <td className="px-3 py-2">{slot.appointment?.memberName ?? "—"}</td>
                         <td className="print-private px-3 py-2">{slot.appointment?.phone ?? "—"}</td>
                         <td className="print-private px-3 py-2">{slot.appointment?.email ?? "—"}</td>
                         <td className="px-3 py-2">
-                          {slot.appointment ? (slot.appointment.status === "confirmed" ? "Confirmed" : "Cancelled") : slot.isBlocked ? "Blocked" : slot.isBuffer ? "Buffer" : "Open"}
+                          {slot.appointment ? (slot.appointment.status === "confirmed" ? "Confirmed" : "Cancelled") : slot.isBlocked || slot.isBuffer ? "Blocked" : "Open"}
                         </td>
                         <td className="px-3 py-2">
                           {slot.appointment ? (

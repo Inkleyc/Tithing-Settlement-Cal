@@ -250,17 +250,15 @@ export function PublicBooking() {
                     "rounded-2xl border p-4 text-left transition",
                     reserved
                       ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500"
-                      : slot.isBuffer
-                        ? "cursor-not-allowed border-amber-200 bg-amber-50 text-amber-700"
-                        : slot.isBlocked
-                          ? "cursor-not-allowed border-red-200 bg-red-50 text-red-700"
-                          : "border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-500 hover:bg-emerald-100",
+                      : slot.isBuffer || slot.isBlocked
+                        ? "cursor-not-allowed border-red-200 bg-red-50 text-red-700"
+                        : "border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-500 hover:bg-emerald-100",
                   ].join(" ")}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <Clock3 className="h-4 w-4" />
                     <span className="text-xs font-medium uppercase tracking-[0.12em]">
-                      {reserved ? "Reserved" : slot.isBuffer ? "Buffer / Catch-up" : slot.isBlocked ? "Blocked" : "Open"}
+                      {reserved ? "Reserved" : slot.isBuffer || slot.isBlocked ? "Blocked" : "Open"}
                     </span>
                   </div>
                   <p className="mt-4 text-xl font-semibold">{form.isLargeFamily ? `${formatTime(slot.startTime)}–${formatTime(slots.find((item) => item.startTime === slot.endTime)?.endTime ?? slot.endTime)}` : formatTime(slot.startTime)}</p>
