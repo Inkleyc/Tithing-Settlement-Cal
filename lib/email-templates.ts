@@ -1,6 +1,10 @@
 type AppointmentEmailDetails = { memberName: string; wardName: string; dayDate: string; startTime: string; endTime: string; adminPhone: string; rescheduleUrl?: string };
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]!);
-const displayDate = (value: string) => new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "America/Denver" });
+const displayDate = (value: string) => {
+  const [year,month,day]=value.split("-").map(Number);
+  const calendarDate=new Date(Date.UTC(year,month-1,day,12));
+  return calendarDate.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric",timeZone:"UTC"});
+};
 const displayTime = (value: string) => { const [hour,minute]=value.split(":").map(Number); return new Intl.DateTimeFormat("en-US",{hour:"numeric",minute:"2-digit",timeZone:"UTC"}).format(new Date(Date.UTC(2024,0,1,hour,minute))); };
 
 export function confirmationEmail(details: AppointmentEmailDetails) {
