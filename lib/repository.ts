@@ -27,6 +27,7 @@ export interface ScheduleRepository {
   addTimeSlot(dayId: string, startTime: string, endTime: string, isBuffer: boolean): Promise<unknown>;
   deleteTimeSlot(slotId: string): Promise<void>;
   toggleSlotBlocked(slotId: string): Promise<unknown>;
+  toggleSlotBuffer(slotId: string): Promise<unknown>;
   cancelAppointment(appointmentId: string): Promise<unknown>;
   createWalkInAppointment(slotId: string, memberName: string, phone: string): Promise<AppointmentRecord>;
   createReservation(input: BookingInput): Promise<AppointmentRecord>;
@@ -52,6 +53,7 @@ const mockRepository: ScheduleRepository = {
   addTimeSlot: async (...args) => mock.addTimeSlot(...args),
   deleteTimeSlot: async (id) => { mock.deleteTimeSlot(id); },
   toggleSlotBlocked: async (id) => mock.toggleSlotBlocked(id),
+  toggleSlotBuffer: async (id) => mock.toggleSlotBuffer(id),
   cancelAppointment: async (id) => mock.cancelAppointment(id),
   createWalkInAppointment: async (...args) => mock.createWalkInAppointment(...args),
   createReservation: async (input) => mock.createReservation(input),

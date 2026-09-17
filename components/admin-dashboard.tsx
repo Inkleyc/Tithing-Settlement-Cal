@@ -114,8 +114,15 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   };
 
   const handleToggle = async (slotId: string) => {
-    await mutate({ action: "toggle", slotId });
-    setStatus("Slot toggled.");
+    try { await mutate({ action: "toggle", slotId }); setStatus("Slot updated."); }
+    catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to update the slot."); }
+  };
+
+  const handleToggleBuffer = async (slotId: string, isBuffer: boolean) => {
+    try {
+      await mutate({ action: "toggle-buffer", slotId });
+      setStatus(isBuffer ? "Buffer changed to a normal appointment time." : "Appointment time changed to a buffer.");
+    } catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to update the slot."); }
   };
 
   const handleCancel = async (appointmentId: string) => {
@@ -357,9 +364,14 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                 ].join(" ")}>
                   <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                     <span>{slot.isBuffer ? "Buffer" : slot.isBlocked ? "Blocked" : reserved ? "Reserved" : "Open"}</span>
-                    {activeTab === "setup" && <button type="button" onClick={() => handleToggle(slot.id)} className="text-slate-700 underline">
-                      {slot.isBlocked ? "Unblock" : "Block"}
-                    </button>}
+                    {activeTab === "setup" && !appointment && <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => handleToggleBuffer(slot.id, slot.isBuffer)} className="text-amber-700 underline">
+                        {slot.isBuffer ? "Make appointment" : "Make buffer"}
+                      </button>
+                      {!slot.isBuffer && <button type="button" onClick={() => handleToggle(slot.id)} className="text-slate-700 underline">
+                        {slot.isBlocked ? "Unblock" : "Block"}
+                      </button>}
+                    </div>}
                   </div>
                   <p className="mt-3 text-xl font-bold text-slate-900">{slot.isBuffer || slot.isBlocked ? "—" : appointmentTime}</p>
 

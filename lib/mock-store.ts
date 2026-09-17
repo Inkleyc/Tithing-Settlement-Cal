@@ -277,6 +277,17 @@ export const toggleSlotBlocked = (slotId: string) => {
   return slot;
 };
 
+export const toggleSlotBuffer = (slotId: string) => {
+  const slot = mockSlots.find((item) => item.id === slotId);
+  if (!slot) throw new Error("Selected time slot no longer exists.");
+  if (getBookedSlotIds().has(slotId)) {
+    throw new Error("A reserved slot cannot be changed to or from a buffer.");
+  }
+  slot.isBuffer = !slot.isBuffer;
+  slot.isBlocked = false;
+  return slot;
+};
+
 export const cancelAppointment = (appointmentId: string) => {
   const appointment = mockAppointments.find((item) => item.id === appointmentId);
   if (!appointment) return null;

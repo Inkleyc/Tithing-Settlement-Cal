@@ -10,6 +10,7 @@ export async function POST(request:Request){
     if(action==="ward-name")await repository.updateWardName(text(b.name,"Ward name",150));
     else if(action==="admin-phone")await repository.updateAdminPhone(phone(b.phone));
     else if(action==="toggle")await repository.toggleSlotBlocked(identifier(b.slotId,"Time slot"));
+    else if(action==="toggle-buffer")await repository.toggleSlotBuffer(identifier(b.slotId,"Time slot"));
     else if(action==="cancel")await repository.cancelAppointment(identifier(b.appointmentId,"Appointment"));
     else if(action==="walk-in")await repository.createWalkInAppointment(identifier(b.slotId,"Time slot"),text(b.name,"Name",150),phone(b.phone));
     else if(action==="edit-day")await repository.updateDay(identifier(b.dayId,"Day"),text(b.date,"Date",10),typeof b.notes==="string"?b.notes.trim().slice(0,255):"");
