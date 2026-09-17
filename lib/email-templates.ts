@@ -1,4 +1,5 @@
 type AppointmentEmailDetails = { memberName: string; wardName: string; dayDate: string; startTime: string; endTime: string; adminPhone: string; rescheduleUrl?: string };
+type CancellationEmailDetails = Omit<AppointmentEmailDetails,"rescheduleUrl"> & { scheduleUrl: string };
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]!);
 const displayDate = (value: string) => {
   const [year,month,day]=value.split("-").map(Number);
@@ -24,4 +25,10 @@ export function rescheduleConfirmationEmail(details: AppointmentEmailDetails) {
 export function reminderEmail(details: AppointmentEmailDetails) {
   const date=displayDate(details.dayDate), range=`${displayTime(details.startTime)}–${displayTime(details.endTime)}`, ward=details.wardName||"Ward Tithing Declaration";
   return { subject: `${ward}: appointment reminder`, text:`Hello ${details.memberName},\n\nReminder: your tithing declaration appointment is tomorrow.\n\nDate: ${date}\nTime: ${range}\nLocation: Bishop's Office${details.rescheduleUrl?`\nReschedule securely: ${details.rescheduleUrl}`:""}${details.adminPhone?`\nExecutive Secretary: ${details.adminPhone}`:""}`, html:`<h1>Appointment reminder</h1><p>Hello ${escapeHtml(details.memberName)},</p><p>Your tithing declaration appointment is tomorrow.</p><p><strong>Date:</strong> ${escapeHtml(date)}<br><strong>Time:</strong> ${escapeHtml(range)}<br><strong>Location:</strong> Bishop&#39;s Office</p>${details.rescheduleUrl?`<p><a href="${escapeHtml(details.rescheduleUrl)}">Reschedule this appointment</a></p>`:""}${details.adminPhone?`<p>Executive Secretary: ${escapeHtml(details.adminPhone)}</p>`:""}` };
+}
+
+export function cancellationEmail(details: CancellationEmailDetails) {
+  const date=displayDate(details.dayDate), range=`${displayTime(details.startTime)}–${displayTime(details.endTime)}`, ward=details.wardName||"Ward Tithing Declaration";
+  const contactText=details.adminPhone?`\nExecutive Secretary: ${details.adminPhone}`:"";
+  return { subject: `${ward}: appointment cancelled`, text:`Hello ${details.memberName},\n\nYour tithing declaration appointment has been cancelled.\n\nCancelled date: ${date}\nCancelled time: ${range}\nLocation: Bishop's Office\n\nSchedule a new appointment: ${details.scheduleUrl}${contactText}`, html:`<h1>Appointment cancelled</h1><p>Hello ${escapeHtml(details.memberName)},</p><p>Your tithing declaration appointment for <strong>${escapeHtml(ward)}</strong> has been cancelled.</p><p><strong>Cancelled date:</strong> ${escapeHtml(date)}<br><strong>Cancelled time:</strong> ${escapeHtml(range)}<br><strong>Location:</strong> Bishop&#39;s Office</p><p><a href="${escapeHtml(details.scheduleUrl)}">Schedule a new appointment</a></p>${details.adminPhone?`<p>Executive Secretary: ${escapeHtml(details.adminPhone)}</p>`:""}` };
 }

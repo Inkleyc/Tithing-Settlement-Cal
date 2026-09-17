@@ -48,7 +48,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     notes: "",
   });
 
-  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); return data.schedule as AdminSchedule; };
+  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); return data as {schedule:AdminSchedule;emailDelivered?:boolean|null}; };
   useEffect(() => {
     if (!isAuthenticated) return;
     let active = true;
@@ -107,7 +107,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     }
 
     try {
-    const next = await mutate({ action: "generate", ...scheduleForm });
+    const {schedule:next} = await mutate({ action: "generate", ...scheduleForm });
     const created = next.find((item) => item.day.date === scheduleForm.date)!;
     setStatus(`Generated slots for ${formatDate(created.day.date)}.`); setDayId(created.day.id); setDayForm({date:created.day.date,notes:created.day.notes});
     } catch (caught) {
@@ -121,8 +121,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   };
 
   const handleCancel = async (appointmentId: string) => {
-    await mutate({ action: "cancel", appointmentId });
-    setStatus("Appointment cancelled and slot released.");
+    try {
+      const result=await mutate({ action: "cancel", appointmentId });
+      setStatus(result.emailDelivered===true?"Appointment cancelled, slot released, and confirmation email sent.":result.emailDelivered===false?"Appointment cancelled and slot released, but the email could not be delivered.":"Walk-in appointment cancelled and slot released.");
+    } catch(caught) { setStatus(caught instanceof Error?caught.message:"Unable to cancel the appointment."); }
   };
 
   const handleWalkInSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -158,7 +160,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     if (!selectedDay || !window.confirm(`Delete ${formatDate(selectedDay.day.date)} and all of its times? This cannot be undone.`)) return;
     setStatus("Deleting day...");
     try {
-      const next = await mutate({ action: "delete-day", dayId: selectedDay.day.id });
+      const {schedule:next} = await mutate({ action: "delete-day", dayId: selectedDay.day.id });
       const replacement = next[0];
       setDayId(replacement?.day.id ?? "");
       setDayForm(replacement ? { date: replacement.day.date, notes: replacement.day.notes } : { date: "", notes: "" });

@@ -1,4 +1,6 @@
 import { requireAdmin } from "@/lib/authorization";
+import { sendEmail } from "@/lib/email";
+import { cancellationEmail } from "@/lib/email-templates";
 import { getRepository } from "@/lib/repository";
 import { identifier, jsonBody, phone, text } from "@/lib/validation";
 
@@ -7,10 +9,23 @@ export async function GET(){try{await requireAdmin();return Response.json(await 
 export async function POST(request:Request){
   try {
     await requireAdmin(); const b=await jsonBody(request); const action=text(b.action,"Action",20),repository=getRepository();
+    let emailDelivered:boolean|null|undefined;
     if(action==="ward-name")await repository.updateWardName(text(b.name,"Ward name",150));
     else if(action==="admin-phone")await repository.updateAdminPhone(phone(b.phone));
     else if(action==="toggle")await repository.toggleSlotBlocked(identifier(b.slotId,"Time slot"));
-    else if(action==="cancel")await repository.cancelAppointment(identifier(b.appointmentId,"Appointment"));
+    else if(action==="cancel"){
+      const cancelled=await repository.cancelAppointment(identifier(b.appointmentId,"Appointment"));
+      if(cancelled.email==="walk-in@ward.local")emailDelivered=null;
+      else {
+        const [primary,wardName,adminPhone]=await Promise.all([repository.getAppointmentSlot(cancelled),repository.getWardName(),repository.getAdminPhone()]);
+        if(!primary)throw new Error("The appointment was cancelled, but its scheduled time could not be found for the email.");
+        const slots=await repository.getSlotsForDay(primary.dayId);
+        const paired=cancelled.pairedSlotId?slots.find((slot)=>slot.id===cancelled.pairedSlotId):undefined;
+        const origin=process.env.NEXT_PUBLIC_APP_URL||new URL(request.url).origin;
+        try { await sendEmail({to:cancelled.email,...cancellationEmail({memberName:cancelled.memberName,wardName,dayDate:primary.dayDate,startTime:primary.startTime,endTime:paired?.endTime??primary.endTime,adminPhone,scheduleUrl:origin})}); emailDelivered=true; }
+        catch(error){emailDelivered=false;console.error("Cancellation email delivery failed",error);}
+      }
+    }
     else if(action==="walk-in")await repository.createWalkInAppointment(identifier(b.slotId,"Time slot"),text(b.name,"Name",150),phone(b.phone));
     else if(action==="edit-day")await repository.updateDay(identifier(b.dayId,"Day"),text(b.date,"Date",10),typeof b.notes==="string"?b.notes.trim().slice(0,255):"");
     else if(action==="delete-day")await repository.deleteDay(identifier(b.dayId,"Day"));
@@ -18,6 +33,6 @@ export async function POST(request:Request){
     else if(action==="delete-slot")await repository.deleteTimeSlot(identifier(b.slotId,"Time slot"));
     else if(action==="generate"){const interval=Number(b.intervalMinutes);if(!Number.isInteger(interval)||interval<5||interval>60)throw new Error("Interval must be between 5 and 60 minutes.");await repository.generateScheduleForDay(text(b.date,"Date",10),text(b.startTime,"Start time",5),text(b.endTime,"End time",5),interval,1440,typeof b.notes==="string"?b.notes.trim().slice(0,255):"");}
     else throw new Error("Unknown action.");
-    return Response.json(await adminData());
+    return Response.json({...await adminData(),...(emailDelivered!==undefined?{emailDelivered}:{})});
   } catch(error){const message=error instanceof Error?error.message:"Request failed.";return Response.json({message},{status:message==="Unauthorized"?401:400});}
 }

@@ -281,7 +281,7 @@ export const toggleSlotBlocked = (slotId: string) => {
 
 export const cancelAppointment = (appointmentId: string) => {
   const appointment = mockAppointments.find((item) => item.id === appointmentId);
-  if (!appointment) return null;
+  if (!appointment) throw new Error("Appointment not found.");
 
   appointment.status = "cancelled";
   appointment.updatedAt = new Date().toISOString();

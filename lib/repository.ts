@@ -27,7 +27,7 @@ export interface ScheduleRepository {
   addTimeSlot(dayId: string, startTime: string, endTime: string, isBuffer: boolean): Promise<unknown>;
   deleteTimeSlot(slotId: string): Promise<void>;
   toggleSlotBlocked(slotId: string): Promise<unknown>;
-  cancelAppointment(appointmentId: string): Promise<unknown>;
+  cancelAppointment(appointmentId: string): Promise<AppointmentRecord>;
   createWalkInAppointment(slotId: string, memberName: string, phone: string): Promise<AppointmentRecord>;
   createReservation(input: BookingInput): Promise<AppointmentRecord>;
   rescheduleAppointment(token: string, newSlotId: string): Promise<AppointmentRecord>;
