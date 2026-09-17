@@ -45,7 +45,7 @@ export function ShareSchedule({ wardName }: { wardName: string }) {
       <h1 className="mt-3 text-4xl font-bold">Schedule Your Tithing Declaration</h1>
       <p className="mx-auto mt-4 max-w-xl text-lg">Choose an available appointment with the Bishop using the secure ward scheduling page.</p>
       {qrCode&&<Image unoptimized src={qrCode} alt="QR code for scheduling a tithing declaration appointment" width={320} height={320} className="mx-auto mt-8 h-80 w-80"/>}
-      <p className="mt-6 break-all text-lg font-semibold">{publicUrl}</p>
+      <a href={publicUrl} className="mt-6 block break-all text-lg font-semibold text-blue-700 underline">{publicUrl}</a>
       <p className="mt-4 text-base text-slate-600">Scan the QR code or visit the link to choose a date and time. A confirmation email will include a secure rescheduling link.</p>
     </article>
   </section>;
