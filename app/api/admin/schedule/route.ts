@@ -3,7 +3,7 @@ import { getRepository } from "@/lib/repository";
 import { identifier, jsonBody, phone, text } from "@/lib/validation";
 
 async function adminData() { const repository=getRepository(); const [schedule,wardName,adminPhone]=await Promise.all([repository.getAdminSchedule(),repository.getWardName(),repository.getAdminPhone()]); return {schedule,wardName,adminPhone}; }
-export async function GET(){try{await requireAdmin();return Response.json(await adminData());}catch{return Response.json({message:"Unauthorized"},{status:401});}}
+export async function GET(){try{await requireAdmin();return Response.json(await adminData(),{headers:{"Cache-Control":"no-store, no-cache, must-revalidate"}});}catch{return Response.json({message:"Unauthorized"},{status:401});}}
 export async function POST(request:Request){
   try {
     await requireAdmin(); const b=await jsonBody(request); const action=text(b.action,"Action",20),repository=getRepository();

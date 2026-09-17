@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarRange, Check, CheckCircle2, ChevronDown, Clock3, Mail, MapPin, Phone, UserRound } from "lucide-react";
 import { availableBookingStarts } from "@/lib/availability";
 import type { DayRecord, PublicSlotView } from "@/lib/mock-store";
@@ -48,22 +48,32 @@ export function PublicBooking() {
   }>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSchedule = async () => {
+  const loadSchedule = useCallback(async () => {
     const response = await fetch("/api/schedule", { cache: "no-store" });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data) throw new Error(data?.message ?? "The schedule could not be loaded. Please refresh the page.");
     setWardName(data.wardName ?? "");
     setDays(data.days);
     setSlotsByDay(data.slots);
-    setSelectedDayId((current) => current || data.days[0]?.id || "");
-  };
-  useEffect(() => {
-    void fetch("/api/schedule", { cache: "no-store" }).then(async (response) => {
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data) throw new Error(data?.message ?? "The schedule could not be loaded. Please refresh the page.");
-      setWardName(data.wardName ?? ""); setDays(data.days); setSlotsByDay(data.slots); setSelectedDayId(data.days[0]?.id || "");
-    }).catch((caught) => setError(caught instanceof Error ? caught.message : "The schedule could not be loaded."));
+    setSelectedDayId((current) => data.days.some((day: DayRecord) => day.id === current) ? current : data.days[0]?.id || "");
   }, []);
+  useEffect(() => {
+    let active = true;
+    let refreshing = false;
+    const refresh = async () => {
+      if (!active || refreshing || document.visibilityState === "hidden") return;
+      refreshing = true;
+      try { await loadSchedule(); }
+      catch (caught) { if (active) setError(caught instanceof Error ? caught.message : "The schedule could not be loaded."); }
+      finally { refreshing = false; }
+    };
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    void refresh();
+    const interval = window.setInterval(() => { void refresh(); }, 3_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", refreshWhenVisible); document.removeEventListener("visibilitychange", refreshWhenVisible); };
+  }, [loadSchedule]);
   useEffect(() => {
     if (!isDateMenuOpen) return;
     const closeOnOutsideClick = (event: MouseEvent) => { if (!dateMenuRef.current?.contains(event.target as Node)) setIsDateMenuOpen(false); };

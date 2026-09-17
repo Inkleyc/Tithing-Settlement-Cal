@@ -53,7 +53,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     if (!isAuthenticated) return;
     let active = true;
     let firstLoad = true;
+    let refreshing = false;
     const refresh = async () => {
+      if (!active || refreshing || document.visibilityState === "hidden") return;
+      refreshing = true;
       try {
         const response = await fetch("/api/admin/schedule", { cache: "no-store" });
         const data = await response.json();
@@ -71,11 +74,11 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         }
       } catch (caught) {
         if (active) setStatus(caught instanceof Error ? caught.message : "Unable to refresh appointments.");
-      }
+      } finally { refreshing = false; }
     };
-    const refreshOnFocus = () => { void refresh(); };
+    const refreshOnFocus = () => { if (document.visibilityState === "visible") void refresh(); };
     void refresh();
-    const interval = window.setInterval(refreshOnFocus, 10_000);
+    const interval = window.setInterval(() => { void refresh(); }, 3_000);
     window.addEventListener("focus", refreshOnFocus);
     document.addEventListener("visibilitychange", refreshOnFocus);
     return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", refreshOnFocus); document.removeEventListener("visibilitychange", refreshOnFocus); };
@@ -235,7 +238,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         <button role="tab" aria-selected={activeTab === "share"} type="button" onClick={() => setActiveTab("share")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "share" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Share</button>
       </div>
 
-      {activeTab === "appointments" && <p className="mb-4 text-right text-xs font-medium text-emerald-700">Updates automatically every 10 seconds</p>}
+      {activeTab === "appointments" && <p className="mb-4 text-right text-xs font-medium text-emerald-700">Live updates every few seconds</p>}
       {activeTab === "share" && <ShareSchedule wardName={wardName} />}
 
       {activeTab !== "share" && <div className={`grid gap-6 ${activeTab === "setup" ? "lg:grid-cols-[380px_minmax(0,1fr)]" : ""}`}>
