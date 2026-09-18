@@ -9,6 +9,8 @@ export function ShareSchedule({ wardName }: { wardName: string }) {
   const [publicUrl]=useState(()=>(process.env.NEXT_PUBLIC_APP_URL||(typeof window!=="undefined"?window.location.origin:"")).replace(/\/$/,""));
   const [qrCode,setQrCode]=useState("");
   const [copied,setCopied]=useState(false);
+  const [creatingPdf,setCreatingPdf]=useState(false);
+  const [pdfError,setPdfError]=useState("");
 
   useEffect(()=>{
     if(publicUrl)void QRCode.toDataURL(publicUrl,{width:640,margin:2,color:{dark:"#0f172a",light:"#ffffff"}}).then(setQrCode);
@@ -18,6 +20,46 @@ export function ShareSchedule({ wardName }: { wardName: string }) {
     await navigator.clipboard.writeText(publicUrl);
     setCopied(true);
     window.setTimeout(()=>setCopied(false),2000);
+  };
+
+  const downloadPdf=async()=>{
+    if(!publicUrl||!qrCode)return;
+    setCreatingPdf(true);
+    setPdfError("");
+    try {
+      const {jsPDF}=await import("jspdf");
+      const pdf=new jsPDF({orientation:"portrait",unit:"mm",format:"letter"});
+      const pageWidth=pdf.internal.pageSize.getWidth();
+      const center=pageWidth/2;
+      pdf.setProperties({title:`${wardName||"Ward"} Tithing Declaration Scheduling`});
+      pdf.setTextColor(15,23,42);
+      if(wardName){pdf.setFont("helvetica","bold");pdf.setFontSize(16);pdf.text(wardName,center,28,{align:"center"});}
+      pdf.setFontSize(25);
+      pdf.text("Schedule Your Tithing Declaration",center,wardName?43:34,{align:"center"});
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(12);
+      const intro="Choose an available appointment with the Bishop using the secure ward scheduling page.";
+      pdf.text(pdf.splitTextToSize(intro,165),center,wardName?55:47,{align:"center"});
+      pdf.addImage(qrCode,"PNG",68,72,80,80);
+      pdf.setTextColor(29,78,216);
+      pdf.setFont("helvetica","bold");
+      pdf.setFontSize(11);
+      const linkLines=pdf.splitTextToSize(publicUrl,170) as string[];
+      let linkY=166;
+      for(const line of linkLines){
+        const width=pdf.getTextWidth(line);
+        const x=center-width/2;
+        pdf.text(line,x,linkY);
+        pdf.link(x,linkY-4,width,6,{url:publicUrl});
+        linkY+=6;
+      }
+      pdf.setTextColor(71,85,105);
+      pdf.setFont("helvetica","normal");
+      pdf.setFontSize(11);
+      pdf.text(pdf.splitTextToSize("Scan the QR code or click the link to choose a date and time. A confirmation email will include a secure rescheduling link.",165),center,linkY+8,{align:"center"});
+      pdf.save("ward-tithing-declaration-announcement.pdf");
+    } catch { setPdfError("The PDF could not be created. Please try again."); }
+    finally { setCreatingPdf(false); }
   };
 
   return <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -33,9 +75,11 @@ export function ShareSchedule({ wardName }: { wardName: string }) {
           <button type="button" disabled={!publicUrl} onClick={copyLink} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{copied?<Check className="h-4 w-4"/>:<Copy className="h-4 w-4"/>}{copied?"Copied":"Copy link"}</button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" disabled={!qrCode||creatingPdf} onClick={downloadPdf} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"><Download className="h-4 w-4"/>{creatingPdf?"Creating PDF…":"Download PDF"}</button>
           <button type="button" onClick={()=>window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700"><Printer className="h-4 w-4"/>Print announcement</button>
           {qrCode&&<a href={qrCode} download="ward-tithing-declaration-qr.png" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700"><Download className="h-4 w-4"/>Download QR code</a>}
         </div>
+        {pdfError&&<p className="mt-3 text-sm font-medium text-red-600">{pdfError}</p>}
       </div>
       <div className="flex justify-center rounded-2xl border border-slate-200 bg-slate-50 p-4">{qrCode?<Image unoptimized src={qrCode} alt="QR code for the ward scheduling page" width={240} height={240} className="h-60 w-60 rounded-xl bg-white"/>:<div className="flex h-60 w-60 items-center justify-center text-sm text-slate-500">Creating QR code…</div>}</div>
     </div>
