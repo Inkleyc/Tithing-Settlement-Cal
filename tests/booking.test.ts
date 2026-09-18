@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cancelAppointment, createReservation, deleteDay, deleteTimeSlot, generateScheduleForDay, getDays, getSlotsForDay, rescheduleAppointment, toggleSlotBlocked } from "../lib/mock-store";
+import { addTimeSlot, cancelAppointment, createReservation, deleteDay, deleteTimeSlot, generateScheduleForDay, getDays, getSlotsForDay, rescheduleAppointment, toggleSlotBlocked } from "../lib/mock-store";
 
 describe("booking invariants", () => {
   it("rejects double booking", () => {
@@ -31,9 +31,14 @@ describe("booking invariants", () => {
     deleteDay(day.id);
     expect(getDays().some((value)=>value.id===day.id)).toBe(false);
   });
+  it("generates only appointment slots", () => {
+    const {day}=generateScheduleForDay("2099-11-23","15:30","20:00",10,180,"No automatic buffers");
+    expect(getSlotsForDay(day.id).every((slot)=>!slot.isBuffer)).toBe(true);
+    deleteDay(day.id);
+  });
   it("normalizes a legacy buffer when it is unblocked", () => {
     const {day}=generateScheduleForDay("2099-11-22","09:00","10:00",10,50,"Buffer toggle test");
-    const slot=getSlotsForDay(day.id).find((value)=>value.isBuffer)!;
+    const slot=addTimeSlot(day.id,"10:10","10:20",true);
     expect(toggleSlotBlocked(slot.id)).toMatchObject({isBuffer:false,isBlocked:false});
     expect(toggleSlotBlocked(slot.id)).toMatchObject({isBuffer:false,isBlocked:true});
     deleteDay(day.id);

@@ -31,7 +31,7 @@ export async function POST(request:Request){
     else if(action==="delete-day")await repository.deleteDay(identifier(b.dayId,"Day"));
     else if(action==="add-slot"){const start=text(b.startTime,"Start time",5),end=text(b.endTime,"End time",5);if(!/^\d{2}:\d{2}$/.test(start)||!/^\d{2}:\d{2}$/.test(end)||start>=end)throw new Error("End time must be after start time.");await repository.addTimeSlot(identifier(b.dayId,"Day"),start,end,false);}
     else if(action==="delete-slot")await repository.deleteTimeSlot(identifier(b.slotId,"Time slot"));
-    else if(action==="generate"){const interval=Number(b.intervalMinutes);if(!Number.isInteger(interval)||interval<5||interval>60)throw new Error("Interval must be between 5 and 60 minutes.");await repository.generateScheduleForDay(text(b.date,"Date",10),text(b.startTime,"Start time",5),text(b.endTime,"End time",5),interval,1440,typeof b.notes==="string"?b.notes.trim().slice(0,255):"");}
+    else if(action==="generate"){const interval=Number(b.intervalMinutes);if(!Number.isInteger(interval)||interval<5||interval>60)throw new Error("Interval must be between 5 and 60 minutes.");await repository.generateScheduleForDay(text(b.date,"Date",10),text(b.startTime,"Start time",5),text(b.endTime,"End time",5),interval,180,typeof b.notes==="string"?b.notes.trim().slice(0,255):"");}
     else throw new Error("Unknown action.");
     return Response.json({...await adminData(),...(emailDelivered!==undefined?{emailDelivered}:{})});
   } catch(error){const message=error instanceof Error?error.message:"Request failed.";return Response.json({message},{status:message==="Unauthorized"?401:400});}

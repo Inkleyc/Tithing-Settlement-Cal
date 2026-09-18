@@ -252,11 +252,8 @@ export const generateScheduleForDay = (
       hour12: false,
     });
 
-    const bufferOffset = Math.floor((current.getTime() - start.getTime()) / 60000) / bufferEveryMinutes;
-    const isBuffer = Number.isInteger(bufferOffset) && bufferOffset > 0 && bufferOffset % 1 === 0;
-
     derivedSlots.push(
-      makeSlot(`${dayId}-${slotStart.replace(":", "")}`, dayId, slotStart, slotEnd, isBuffer)
+      makeSlot(`${dayId}-${slotStart.replace(":", "")}`, dayId, slotStart, slotEnd, false)
     );
   }
 

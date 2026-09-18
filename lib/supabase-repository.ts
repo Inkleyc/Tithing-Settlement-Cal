@@ -49,7 +49,12 @@ export const supabaseRepository: ScheduleRepository = {
     return Promise.all(days.map(async (value) => ({ day: value, slots: (await slotsForDay(value.id)).map((item) => ({ ...item, appointment: appointments.find((a) => a.timeSlotId === item.id || a.pairedSlotId === item.id) })) })));
   },
   async generateScheduleForDay(date, startTime, endTime, intervalMinutes, bufferEveryMinutes, notes = "Auto-generated") {
-    const result = await createSupabaseAdminClient().rpc("generate_schedule", { p_date: date, p_start_time: startTime, p_end_time: endTime, p_interval_minutes: intervalMinutes, p_buffer_every_minutes: bufferEveryMinutes, p_notes: notes }); fail(result.error); return result.data;
+    const client=createSupabaseAdminClient();
+    const result = await client.rpc("generate_schedule", { p_date: date, p_start_time: startTime, p_end_time: endTime, p_interval_minutes: intervalMinutes, p_buffer_every_minutes: bufferEveryMinutes, p_notes: notes });
+    fail(result.error);
+    const normalized=await client.from("time_slots").update({is_buffer:false}).eq("day_id",result.data);
+    fail(normalized.error);
+    return result.data;
   },
   async updateDay(id,date,notes){const result=await createSupabaseAdminClient().from("days").update({date,notes}).eq("id",id).select().maybeSingle();fail(result.error);if(!result.data)throw new Error("Declaration day not found.");return day(result.data as Row);},
   async deleteDay(id){
