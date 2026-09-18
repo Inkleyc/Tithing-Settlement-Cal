@@ -38,14 +38,13 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [walkInForm, setWalkInForm] = useState({ name: "", phone: "" });
-  const [dayForm, setDayForm] = useState({ date: "", notes: "" });
+  const [dayForm, setDayForm] = useState({ date: "" });
   const [slotForm, setSlotForm] = useState({ startTime: "", endTime: "" });
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
     startTime: "13:00",
     endTime: "17:00",
     intervalMinutes: 10,
-    notes: "",
   });
 
   const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); return data as {schedule:AdminSchedule;emailDelivered?:boolean|null}; };
@@ -69,7 +68,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           const initial = nextSchedule[0];
           setWardName(data.wardName ?? "");
           setAdminPhone(data.adminPhone ?? "");
-          if (initial) setDayForm({ date: initial.day.date, notes: initial.day.notes });
+          if (initial) setDayForm({ date: initial.day.date });
           firstLoad = false;
         }
       } catch (caught) {
@@ -109,7 +108,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     try {
     const {schedule:next} = await mutate({ action: "generate", ...scheduleForm });
     const created = next.find((item) => item.day.date === scheduleForm.date)!;
-    setStatus(`Generated slots for ${formatDate(created.day.date)}.`); setDayId(created.day.id); setDayForm({date:created.day.date,notes:created.day.notes});
+    setStatus(`Generated slots for ${formatDate(created.day.date)}.`); setDayId(created.day.id); setDayForm({date:created.day.date});
     } catch (caught) {
       setStatus(caught instanceof Error ? caught.message : "Unable to generate schedule.");
     }
@@ -163,7 +162,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
       const {schedule:next} = await mutate({ action: "delete-day", dayId: selectedDay.day.id });
       const replacement = next[0];
       setDayId(replacement?.day.id ?? "");
-      setDayForm(replacement ? { date: replacement.day.date, notes: replacement.day.notes } : { date: "", notes: "" });
+      setDayForm(replacement ? { date: replacement.day.date } : { date: "" });
       setStatus("Declaration day deleted.");
     } catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to delete the day."); }
   };
@@ -280,11 +279,6 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               <input type="number" min={5} max={60} step={5} value={scheduleForm.intervalMinutes} onChange={(event) => setScheduleForm((current) => ({ ...current, intervalMinutes: Number(event.target.value) }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
             </label>
 
-            <label className="block text-sm font-medium text-slate-700">
-              Notes
-              <input type="text" value={scheduleForm.notes} onChange={(event) => setScheduleForm((current) => ({ ...current, notes: event.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Sunday Block 1" />
-            </label>
-
             <button type="button" onClick={handleGenerate} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700">
               <PlusCircle className="h-4 w-4" />
               Generate slots
@@ -302,7 +296,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             </div>
             <div className="flex gap-2">
               {schedule.map((item) => (
-                <button key={item.day.id} type="button" onClick={() => { setDayId(item.day.id); setDayForm({date:item.day.date,notes:item.day.notes}); }} className={[
+                <button key={item.day.id} type="button" onClick={() => { setDayId(item.day.id); setDayForm({date:item.day.date}); }} className={[
                   "rounded-xl border px-3 py-2 text-sm font-medium",
                   item.day.id === dayId ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700",
                 ].join(" ")}>
@@ -318,9 +312,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             <div className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:grid-cols-2">
               <form onSubmit={handleEditDay} className="space-y-3">
                 <h3 className="font-semibold text-slate-900">Edit selected day</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div>
                   <label className="text-sm font-medium text-slate-700">Date<input required type="date" value={dayForm.date} onChange={(event)=>setDayForm((current)=>({...current,date:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
-                  <label className="text-sm font-medium text-slate-700">Notes<input value={dayForm.notes} maxLength={255} onChange={(event)=>setDayForm((current)=>({...current,notes:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button type="submit" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Save day</button>
@@ -406,7 +399,6 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               <div className="mb-4 hidden print:block print:text-black">
                 <h1 className="text-2xl font-bold">Tithing declaration roster</h1>
                 <p className="mt-1 text-lg">{selectedDay ? formatDate(selectedDay.day.date) : "Selected day"}</p>
-                {selectedDay?.day.notes && <p className="text-sm">{selectedDay.day.notes}</p>}
               </div>
               <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead className="bg-slate-100 text-slate-700">

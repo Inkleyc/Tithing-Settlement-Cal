@@ -189,7 +189,6 @@ export function PublicBooking() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-lg font-semibold text-slate-900">{formatDate(day.date)}</p>
-                    <p className="mt-1 text-sm text-slate-500">{day.notes}</p>
                   </div>
                   <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-700">
                     {openCount} open
@@ -216,7 +215,6 @@ export function PublicBooking() {
               return <button key={day.id} role="option" aria-selected={isSelected} type="button" onClick={() => { setSelectedDayId(day.id); setIsDateMenuOpen(false); }} className={`flex w-full items-center justify-between gap-4 rounded-xl border px-4 py-3 text-left transition ${isSelected ? "border-emerald-300 bg-emerald-50" : "border-transparent hover:border-slate-200 hover:bg-slate-50"}`}>
                 <span>
                   <span className="block font-semibold text-slate-900">{formatDate(day.date)}</span>
-                  {day.notes && <span className="mt-0.5 block text-sm text-slate-500">{day.notes}</span>}
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${openCount ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>{openCount} open</span>
