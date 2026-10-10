@@ -377,6 +377,9 @@ export function PublicBooking() {
           </div>
         </section>
       )}
+      <footer className="mt-8 text-center text-sm text-slate-500">
+        <a href="/privacy" className="underline hover:text-slate-800">Privacy policy</a>
+      </footer>
     </div>
   );
 }
