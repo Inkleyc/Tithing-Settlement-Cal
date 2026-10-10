@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addTimeSlot, cancelAppointment, createReservation, deleteDay, deleteTimeSlot, generateScheduleForDay, getDays, getSlotsForDay, rescheduleAppointment, toggleSlotBlocked } from "../lib/mock-store";
+import { addTimeSlot, archivePastDays, cancelAppointment, createReservation, deleteDay, deleteTimeSlot, generateScheduleForDay, getArchivedSchedule, getDays, getSlotsForDay, rescheduleAppointment, toggleSlotBlocked } from "../lib/mock-store";
 
 describe("booking invariants", () => {
   it("rejects double booking", () => {
@@ -42,5 +42,13 @@ describe("booking invariants", () => {
     expect(toggleSlotBlocked(slot.id)).toMatchObject({isBuffer:false,isBlocked:false});
     expect(toggleSlotBlocked(slot.id)).toMatchObject({isBuffer:false,isBlocked:true});
     deleteDay(day.id);
+  });
+  it("archives a past day without deleting its appointment record", () => {
+    const {day}=generateScheduleForDay("2020-01-02","09:00","10:00",10,50,"Archive test");
+    const slot=getSlotsForDay(day.id)[0];
+    const appointment=createReservation({dayId:day.id,slotId:slot.id,memberName:"Archive Test",email:"archive@test.local",phone:"8015550105",isLargeFamily:false});
+    expect(archivePastDays("2020-01-03")).toBe(1);
+    expect(getDays().some((value)=>value.id===day.id)).toBe(false);
+    expect(getArchivedSchedule().find((value)=>value.day.id===day.id)?.slots.some((value)=>value.appointment?.id===appointment.id)).toBe(true);
   });
 });

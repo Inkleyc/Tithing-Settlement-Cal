@@ -15,6 +15,17 @@ async function activeDays() {
   fail(result.error); return (result.data ?? []).map((row) => day(row as Row));
 }
 
+async function inactiveDays() {
+  const result = await createSupabaseAdminClient().from("days").select("*").eq("is_active", false).order("date", { ascending: false });
+  fail(result.error); return (result.data ?? []).map((row) => day(row as Row));
+}
+
+async function scheduleForDays(days: DayRecord[]) {
+  const result = await createSupabaseAdminClient().from("appointments").select("*").eq("status", "confirmed"); fail(result.error);
+  const appointments = (result.data ?? []).map((row) => appointment(row as Row));
+  return Promise.all(days.map(async (value) => ({ day: value, slots: (await slotsForDay(value.id)).map((item) => ({ ...item, appointment: appointments.find((a) => a.timeSlotId === item.id || a.pairedSlotId === item.id) })) })));
+}
+
 async function slotsForDay(dayId: string): Promise<PublicSlotView[]> {
   const client = createSupabaseAdminClient();
   const [slots, appointments] = await Promise.all([
@@ -43,11 +54,10 @@ export const supabaseRepository: ScheduleRepository = {
   getAppointmentByToken: byToken,
   async getAppointmentSlot(value) { const result = await createSupabaseAdminClient().from("time_slots").select("*, days!inner(date)").eq("id", value.timeSlotId).maybeSingle(); fail(result.error); if (!result.data) return undefined; return { ...slot(result.data as Row), dayDate: String((result.data.days as { date: string }).date) }; },
   async getAdminSchedule() {
-    const days = await activeDays();
-    const result = await createSupabaseAdminClient().from("appointments").select("*").eq("status", "confirmed"); fail(result.error);
-    const appointments = (result.data ?? []).map((row) => appointment(row as Row));
-    return Promise.all(days.map(async (value) => ({ day: value, slots: (await slotsForDay(value.id)).map((item) => ({ ...item, appointment: appointments.find((a) => a.timeSlotId === item.id || a.pairedSlotId === item.id) })) })));
+    return scheduleForDays(await activeDays());
   },
+  async getArchivedSchedule() { return scheduleForDays(await inactiveDays()); },
+  async archivePastDays(today) { const result=await createSupabaseAdminClient().from("days").update({is_active:false}).eq("is_active",true).lt("date",today).select("id");fail(result.error);return result.data?.length??0; },
   async generateScheduleForDay(date, startTime, endTime, intervalMinutes, bufferEveryMinutes, notes = "Auto-generated") {
     const client=createSupabaseAdminClient();
     const result = await client.rpc("generate_schedule", { p_date: date, p_start_time: startTime, p_end_time: endTime, p_interval_minutes: intervalMinutes, p_buffer_every_minutes: bufferEveryMinutes, p_notes: notes });

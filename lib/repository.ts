@@ -21,6 +21,8 @@ export interface ScheduleRepository {
   getAppointmentByToken(token: string): Promise<AppointmentRecord | undefined>;
   getAppointmentSlot(appointment: AppointmentRecord): Promise<(TimeSlotRecord & { dayDate: string }) | undefined>;
   getAdminSchedule(): Promise<AdminSchedule>;
+  getArchivedSchedule(): Promise<AdminSchedule>;
+  archivePastDays(today: string): Promise<number>;
   generateScheduleForDay(date: string, startTime: string, endTime: string, intervalMinutes: number, bufferEveryMinutes: number, notes?: string): Promise<unknown>;
   updateDay(dayId: string, date: string, notes: string): Promise<unknown>;
   deleteDay(dayId: string): Promise<void>;
@@ -46,6 +48,8 @@ const mockRepository: ScheduleRepository = {
   getAppointmentByToken: async (token) => mock.getAppointmentByToken(token),
   getAppointmentSlot: async (appointment) => mock.getAppointmentSlot(appointment),
   getAdminSchedule: async () => mock.getAdminSchedule(),
+  getArchivedSchedule: async () => mock.getArchivedSchedule(),
+  archivePastDays: async (today) => mock.archivePastDays(today),
   generateScheduleForDay: async (...args) => mock.generateScheduleForDay(...args),
   updateDay: async (...args) => mock.updateDay(...args),
   deleteDay: async (id) => { mock.deleteDay(id); },

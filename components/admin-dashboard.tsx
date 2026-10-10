@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarClock, Lock, MessageSquareText, PlusCircle, Printer, Shield, Trash2, X } from "lucide-react";
+import { Archive, CalendarClock, CalendarPlus, Lock, MessageSquareText, PlusCircle, Printer, Shield, Trash2, X } from "lucide-react";
 import { ShareSchedule } from "@/components/share-schedule";
 import type { DayRecord, PublicSlotView, AppointmentRecord } from "@/lib/mock-store";
 
@@ -26,8 +26,22 @@ const formatTime = (timeValue: string) => {
   });
 };
 
+const googleCalendarUrl = (day: DayRecord, slot: PublicSlotView, appointment: AppointmentRecord, endTime: string, wardName: string) => {
+  const compactDate = day.date.replaceAll("-", "");
+  const compactTime = (value: string) => value.replace(":", "") + "00";
+  const query = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${wardName ? `${wardName} ` : ""}Tithing declaration — ${appointment.memberName}`,
+    dates: `${compactDate}T${compactTime(slot.startTime)}/${compactDate}T${compactTime(endTime)}`,
+    details: `Tithing declaration appointment for ${appointment.memberName}. Phone: ${appointment.phone}. Email: ${appointment.email}.`,
+    location: "Bishop's Office",
+    ctz: "America/Denver",
+  });
+  return `https://calendar.google.com/calendar/render?${query.toString()}`;
+};
+
 export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }) {
-  const [activeTab, setActiveTab] = useState<"appointments" | "setup" | "share">("appointments");
+  const [activeTab, setActiveTab] = useState<"appointments" | "archive" | "setup" | "share">("appointments");
   const [status, setStatus] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +49,9 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [adminPhone, setAdminPhone] = useState("");
   const [dayId, setDayId] = useState("");
   const [schedule, setSchedule] = useState<AdminSchedule>([]);
+  const [archivedSchedule, setArchivedSchedule] = useState<AdminSchedule>([]);
+  const [googleCalendarConfigured, setGoogleCalendarConfigured] = useState(false);
+  const [isCalendarSyncing, setIsCalendarSyncing] = useState(false);
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [walkInForm, setWalkInForm] = useState({ name: "", phone: "" });
@@ -47,7 +64,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     intervalMinutes: 10,
   });
 
-  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); return data as {schedule:AdminSchedule;emailDelivered?:boolean|null}; };
+  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setArchivedSchedule(data.archivedSchedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setGoogleCalendarConfigured(data.googleCalendarConfigured === true); return data as {schedule:AdminSchedule;archivedSchedule:AdminSchedule;emailDelivered?:boolean|null;calendarSync?:{created:number;updated:number;deleted:number;unchanged:number}}; };
   useEffect(() => {
     if (!isAuthenticated) return;
     let active = true;
@@ -63,6 +80,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         if (!active) return;
         const nextSchedule = (data.schedule ?? []) as AdminSchedule;
         setSchedule(nextSchedule);
+        setArchivedSchedule((data.archivedSchedule ?? []) as AdminSchedule);
+        setGoogleCalendarConfigured(data.googleCalendarConfigured === true);
         setDayId((current) => nextSchedule.some((item) => item.day.id === current) ? current : nextSchedule[0]?.day.id ?? "");
         if (firstLoad) {
           const initial = nextSchedule[0];
@@ -180,6 +199,17 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to delete the slot."); }
   };
 
+  const handleCalendarSync = async () => {
+    setIsCalendarSyncing(true);
+    setStatus("Comparing appointments with Google Calendar...");
+    try {
+      const result = await mutate({ action: "sync-calendar" });
+      const sync = result.calendarSync;
+      setStatus(sync ? `Google Calendar synced: ${sync.created} added, ${sync.updated} updated, ${sync.deleted} removed, ${sync.unchanged} already current.` : "Google Calendar sync completed.");
+    } catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to sync Google Calendar."); }
+    finally { setIsCalendarSyncing(false); }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -210,7 +240,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     );
   }
 
-  const selectedDay = schedule.find((item) => item.day.id === dayId) ?? schedule[0];
+  const displayedSchedule = activeTab === "archive" ? archivedSchedule : schedule;
+  const selectedDay = displayedSchedule.find((item) => item.day.id === dayId) ?? displayedSchedule[0];
   const daySlots = selectedDay ? selectedDay.slots : [];
 
   return (
@@ -221,6 +252,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           <h1 className="mt-2 text-3xl font-bold text-slate-900">Ward declaration schedule</h1>
         </div>
         <div className="flex items-center gap-3">
+          <button type="button" disabled={!googleCalendarConfigured || isCalendarSyncing} onClick={handleCalendarSync} title={googleCalendarConfigured ? "Compare active appointments with Google Calendar" : "Add Google Calendar credentials in Vercel to enable automatic sync"} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400">
+            <CalendarPlus className="h-4 w-4" />
+            {isCalendarSyncing ? "Syncing..." : "Sync Google Calendar"}
+          </button>
           {activeTab === "appointments" && <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
             <Printer className="h-4 w-4" />
             Print selected day
@@ -233,9 +268,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         </div>
       </div>
 
-      <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-3 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
-        <button role="tab" aria-selected={activeTab === "appointments"} type="button" onClick={() => setActiveTab("appointments")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "appointments" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Appointments</button>
-        <button role="tab" aria-selected={activeTab === "setup"} type="button" onClick={() => setActiveTab("setup")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "setup" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Schedule setup</button>
+      <div role="tablist" aria-label="Admin sections" className="mb-6 grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm sm:grid-cols-4">
+        <button role="tab" aria-selected={activeTab === "appointments"} type="button" onClick={() => { setActiveTab("appointments"); setDayId(schedule[0]?.day.id ?? ""); }} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "appointments" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Appointments</button>
+        <button role="tab" aria-selected={activeTab === "archive"} type="button" onClick={() => { setActiveTab("archive"); setDayId(archivedSchedule[0]?.day.id ?? ""); }} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "archive" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Archive ({archivedSchedule.length})</button>
+        <button role="tab" aria-selected={activeTab === "setup"} type="button" onClick={() => { setActiveTab("setup"); setDayId(schedule[0]?.day.id ?? ""); }} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "setup" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Schedule setup</button>
         <button role="tab" aria-selected={activeTab === "share"} type="button" onClick={() => setActiveTab("share")} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === "share" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>Share</button>
       </div>
 
@@ -295,7 +331,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               <h2 className="text-2xl font-bold text-slate-900">{selectedDay ? formatDate(selectedDay.day.date) : "No dates"}</h2>
             </div>
             <div className="flex gap-2">
-              {schedule.map((item) => (
+              {displayedSchedule.map((item) => (
                 <button key={item.day.id} type="button" onClick={() => { setDayId(item.day.id); setDayForm({date:item.day.date}); }} className={[
                   "rounded-xl border px-3 py-2 text-sm font-medium",
                   item.day.id === dayId ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700",
@@ -362,6 +398,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                       {pairedSlot && <p className="font-medium text-emerald-700">20-minute appointment</p>}
                       <p>{appointment.phone}</p>
                       <p>{appointment.email}</p>
+                      {!googleCalendarConfigured && <a target="_blank" rel="noreferrer" href={googleCalendarUrl(selectedDay.day, slot, appointment, pairedSlot?.endTime ?? slot.endTime, wardName)} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-blue-200 px-2 py-1 text-xs font-medium text-blue-700">
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        Add to Google Calendar
+                      </a>}
                       {activeTab === "appointments" && <div className="mt-3 flex flex-wrap gap-2">
                         <a href={`sms:${appointment.phone}?body=${encodeURIComponent(`Hi ${appointment.memberName.split(" ")[0]}, this is the ward executive secretary reminding you of your tithing declaration with the Bishop on ${selectedDay ? formatDate(selectedDay.day.date) : "the scheduled date"} at ${formatTime(slot.startTime)} in the Bishop's office.`)}`} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
                           <MessageSquareText className="h-3.5 w-3.5" />
@@ -389,10 +429,10 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             })}
           </div>
 
-          {activeTab === "appointments" && <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-4 print-area">
+          {(activeTab === "appointments" || activeTab === "archive") && selectedDay && <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-4 print-area">
             <div className="mb-3 flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
-              <Lock className="h-4 w-4" />
-              Master schedule
+              {activeTab === "archive" ? <Archive className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+              {activeTab === "archive" ? "Archived attendance record" : "Master schedule"}
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">

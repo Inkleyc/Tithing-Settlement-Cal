@@ -219,6 +219,31 @@ export const getAdminSchedule = () => {
   }));
 };
 
+const scheduleForDays = (dayList: DayRecord[]) => dayList.map((day) => ({
+  day,
+  slots: getSlotsForDay(day.id).map((slot) => ({
+    ...slot,
+    appointment: mockAppointments.find(
+      (item) => item.status === "confirmed" && (item.timeSlotId === slot.id || item.pairedSlotId === slot.id)
+    ),
+  })),
+}));
+
+export const getArchivedSchedule = () => scheduleForDays(
+  seedDays.filter((day) => !day.isActive).sort((a, b) => b.date.localeCompare(a.date))
+);
+
+export const archivePastDays = (today: string) => {
+  let archived = 0;
+  for (const day of seedDays) {
+    if (day.isActive && day.date < today) {
+      day.isActive = false;
+      archived += 1;
+    }
+  }
+  return archived;
+};
+
 export const generateScheduleForDay = (
   date: string,
   startTime: string,

@@ -2,6 +2,8 @@
 
 Public booking, secure rescheduling, administrator scheduling, printable rosters, SMS links, and day-before reminders.
 
+Past declaration days are automatically archived without deleting their appointments. The admin Archive tab retains the roster. When Google Calendar credentials are configured, the admin can run an immediate one-way sync and a nightly maintenance job reconciles upcoming confirmed appointments. The app tags its calendar events with the appointment ID, updates changed events, removes future app-managed events whose bookings were cancelled, and never edits unrelated calendar events.
+
 ## Repository modes
 
 All route handlers use one server-only repository contract. When both `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are present, the app automatically uses Supabase. If either is absent, it uses the shared in-memory mock repository, which is seeded at server startup and resets when the server restarts. Never expose the service-role key through a `NEXT_PUBLIC_` variable.
@@ -43,8 +45,12 @@ Configure:
 - `GMAIL_USER` and a Google app-specific `GMAIL_APP_PASSWORD` (no custom domain required)
 - `RESEND_API_KEY` and a verified-sender `RESEND_FROM_EMAIL`
 - `NEXT_PUBLIC_APP_URL` with the deployed HTTPS origin
+- `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN` from a Google OAuth web application granted offline Calendar access
+- `GOOGLE_CALENDAR_ID` set to `primary` or the ID of a dedicated calendar
 
 Apply the migration before deploying. `vercel.json` invokes `/api/cron/reminders`; Vercel cron schedules use UTC. `14:00 UTC` is 08:00 Mountain Daylight Time, while exact 08:00 Mountain Standard Time requires `15:00 UTC`. Cron requests must carry `Authorization: Bearer $CRON_SECRET`.
+
+The maintenance cron runs at `08:00 UTC` (01:00 MST / 02:00 MDT). It archives prior dates and runs calendar sync. Google authorization must use the `https://www.googleapis.com/auth/calendar.events` scope and request offline access so a refresh token is issued. Keep the refresh token only in server-side environment variables. If the OAuth consent screen remains in Testing for an external app, Google may expire the refresh token after seven days; publish the app for stable nightly access.
 
 Public schedule responses contain reservation state but no member details. Appointment details require the unguessable reschedule token, and administrative data and mutations require the signed, HTTP-only admin session cookie.
 
