@@ -64,7 +64,7 @@ function desiredEvents(schedule: AdminSchedule, wardName: string) {
     if (!appointment || appointment.timeSlotId !== slot.id) return [];
     const paired = appointment.pairedSlotId ? slots.find((candidate) => candidate.id === appointment.pairedSlotId) : undefined;
     const event: GoogleEvent = {
-      summary: `${wardName ? `${wardName} ` : ""}Tithing declaration — ${appointment.memberName}`,
+      summary: `${appointment.memberName} — ${wardName ? `${wardName} ` : ""}Tithing declaration`,
       description: `Tithing declaration appointment for ${appointment.memberName}.\nPhone: ${appointment.phone}\nEmail: ${appointment.email}`,
       location: "Bishop's Office",
       start: { dateTime: `${day.date}T${slot.startTime}:00`, timeZone: TIME_ZONE },

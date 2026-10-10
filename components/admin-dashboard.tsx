@@ -31,7 +31,7 @@ const googleCalendarUrl = (day: DayRecord, slot: PublicSlotView, appointment: Ap
   const compactTime = (value: string) => value.replace(":", "") + "00";
   const query = new URLSearchParams({
     action: "TEMPLATE",
-    text: `${wardName ? `${wardName} ` : ""}Tithing declaration — ${appointment.memberName}`,
+    text: `${appointment.memberName} — ${wardName ? `${wardName} ` : ""}Tithing declaration`,
     dates: `${compactDate}T${compactTime(slot.startTime)}/${compactDate}T${compactTime(endTime)}`,
     details: `Tithing declaration appointment for ${appointment.memberName}. Phone: ${appointment.phone}. Email: ${appointment.email}.`,
     location: "Bishop's Office",
