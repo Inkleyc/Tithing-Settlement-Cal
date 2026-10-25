@@ -363,7 +363,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
 
           {activeTab === "setup" && selectedDay && (
             <div className="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 xl:grid-cols-2">
-              <form onSubmit={handleEditDay} className="space-y-3">
+              <form onSubmit={handleEditDay} className="min-w-0 space-y-3">
                 <h3 className="font-semibold text-slate-900">Edit selected day</h3>
                 <div>
                   <label className="block min-w-0 text-sm font-medium text-slate-700">Date<input required type="date" value={dayForm.date} onChange={(event)=>setDayForm((current)=>({...current,date:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
@@ -373,9 +373,9 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   <button type="button" onClick={handleDeleteDay} className="rounded-xl border border-red-300 px-3 py-2 text-sm font-semibold text-red-700">Delete entire day</button>
                 </div>
               </form>
-              <form onSubmit={handleAddSlot} className="space-y-3">
+              <form onSubmit={handleAddSlot} className="min-w-0 space-y-3">
                 <h3 className="font-semibold text-slate-900">Add one time slot</h3>
-                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                <div className="grid min-w-0 gap-3">
                   <label className="block min-w-0 text-sm font-medium text-slate-700">Start<input required type="time" value={slotForm.startTime} onChange={(event)=>setSlotForm((current)=>({...current,startTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                   <label className="block min-w-0 text-sm font-medium text-slate-700">End<input required type="time" value={slotForm.endTime} onChange={(event)=>setSlotForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
@@ -394,7 +394,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
 
               return (
                 <div key={slot.id} className={[
-                  "rounded-2xl border p-4",
+                  "min-w-0 rounded-2xl border p-4",
                   pairedSlot ? "sm:col-span-2" : "",
                   slot.isBlocked || slot.isBuffer ? "border-red-200 bg-red-50" : "border-slate-200 bg-slate-50",
                 ].join(" ")}>
@@ -410,7 +410,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   <p className="mt-3 text-xl font-bold text-slate-900">{slot.isBuffer || slot.isBlocked ? "—" : appointmentTime}</p>
 
                   {appointment && (
-                    <div className="mt-4 rounded-xl bg-white p-3 text-sm text-slate-700">
+                    <div className="mt-4 min-w-0 rounded-xl bg-white p-3 text-sm text-slate-700 [overflow-wrap:anywhere]">
                       <p className="font-semibold text-slate-900">{appointment.memberName}</p>
                       {pairedSlot && <p className="font-medium text-emerald-700">20-minute appointment</p>}
                       <p>{appointment.phone}</p>

@@ -31,12 +31,22 @@ select {
 /* Native date/time controls on iOS can otherwise exceed narrow grid columns. */
 input[type="date"],
 input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
   display: block;
   box-sizing: border-box;
+  width: 100%;
+  inline-size: 100%;
   min-width: 0;
   max-width: 100%;
   min-inline-size: 0;
   max-inline-size: 100%;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  min-width: 0;
+  padding: 0;
 }
 
 input[type="date"]::-webkit-date-and-time-value,
