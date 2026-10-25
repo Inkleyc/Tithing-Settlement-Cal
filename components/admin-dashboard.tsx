@@ -230,7 +230,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block min-w-0 text-sm font-medium text-slate-700">
             Password
             <input
               type="password"
@@ -290,7 +290,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
       {activeTab === "share" && <ShareSchedule wardName={wardName} />}
 
       {activeTab !== "share" && <div className={`grid gap-6 ${activeTab === "setup" ? "lg:grid-cols-[380px_minmax(0,1fr)]" : ""}`}>
-        {activeTab === "setup" && <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        {activeTab === "setup" && <aside className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <form onSubmit={handleWardName} className="mb-6 border-b border-slate-200 pb-6">
             <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Ward name<input required maxLength={150} value={wardName} onChange={(event)=>setWardName(event.target.value)} placeholder="Example 3rd Ward" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
             <button type="submit" className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Save ward name</button>
@@ -311,23 +311,23 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           </div>
 
           <div className="mt-5 space-y-4">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block min-w-0 text-sm font-medium text-slate-700">
               Date
               <input type="date" value={scheduleForm.date} onChange={(event) => setScheduleForm((current) => ({ ...current, date: event.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
             </label>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-medium text-slate-700">
+            <div className="grid min-w-0 gap-4">
+              <label className="block min-w-0 text-sm font-medium text-slate-700">
                 Start time
                 <input type="time" value={scheduleForm.startTime} onChange={(event) => setScheduleForm((current) => ({ ...current, startTime: event.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
               </label>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block min-w-0 text-sm font-medium text-slate-700">
                 End time
                 <input type="time" value={scheduleForm.endTime} onChange={(event) => setScheduleForm((current) => ({ ...current, endTime: event.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
               </label>
             </div>
 
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block min-w-0 text-sm font-medium text-slate-700">
               Interval (min)
               <input type="number" min={5} max={60} step={5} value={scheduleForm.intervalMinutes} onChange={(event) => setScheduleForm((current) => ({ ...current, intervalMinutes: Number(event.target.value) }))} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
             </label>
@@ -341,13 +341,13 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           </div>
         </aside>}
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Current date</p>
               <h2 className="text-2xl font-bold text-slate-900">{selectedDay ? formatDate(selectedDay.day.date) : "No dates"}</h2>
             </div>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2">
               {displayedSchedule.map((item) => (
                 <button key={item.day.id} type="button" onClick={() => { setDayId(item.day.id); setDayForm({date:item.day.date}); }} className={[
                   "rounded-xl border px-3 py-2 text-sm font-medium",
@@ -366,7 +366,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               <form onSubmit={handleEditDay} className="space-y-3">
                 <h3 className="font-semibold text-slate-900">Edit selected day</h3>
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Date<input required type="date" value={dayForm.date} onChange={(event)=>setDayForm((current)=>({...current,date:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                  <label className="block min-w-0 text-sm font-medium text-slate-700">Date<input required type="date" value={dayForm.date} onChange={(event)=>setDayForm((current)=>({...current,date:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button type="submit" className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Save day</button>
@@ -375,9 +375,9 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               </form>
               <form onSubmit={handleAddSlot} className="space-y-3">
                 <h3 className="font-semibold text-slate-900">Add one time slot</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-sm font-medium text-slate-700">Start<input required type="time" value={slotForm.startTime} onChange={(event)=>setSlotForm((current)=>({...current,startTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
-                  <label className="text-sm font-medium text-slate-700">End<input required type="time" value={slotForm.endTime} onChange={(event)=>setSlotForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                  <label className="block min-w-0 text-sm font-medium text-slate-700">Start<input required type="time" value={slotForm.startTime} onChange={(event)=>setSlotForm((current)=>({...current,startTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                  <label className="block min-w-0 text-sm font-medium text-slate-700">End<input required type="time" value={slotForm.endTime} onChange={(event)=>setSlotForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
                 <button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Add time</button>
               </form>
@@ -505,11 +505,11 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             </div>
 
             <form onSubmit={handleWalkInSubmit} className="mt-5 space-y-4">
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block min-w-0 text-sm font-medium text-slate-700">
                 Member name
                 <input value={walkInForm.name} onChange={(event) => setWalkInForm((current) => ({ ...current, name: event.target.value }))} required className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
               </label>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block min-w-0 text-sm font-medium text-slate-700">
                 Phone
                 <input value={walkInForm.phone} onChange={(event) => setWalkInForm((current) => ({ ...current, phone: event.target.value }))} required className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5" />
               </label>
