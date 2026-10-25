@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { PUBLIC_APP_URL } from "@/lib/public-links";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Check, Copy, Download, Printer, Share2 } from "lucide-react";
 
 export function ShareSchedule({ wardName }: { wardName: string }) {
-  const [publicUrl]=useState(()=>(process.env.NEXT_PUBLIC_APP_URL||(typeof window!=="undefined"?window.location.origin:"")).replace(/\/$/,""));
+  const publicUrl = PUBLIC_APP_URL;
   const [qrCode,setQrCode]=useState("");
   const [copied,setCopied]=useState(false);
   const [creatingPdf,setCreatingPdf]=useState(false);

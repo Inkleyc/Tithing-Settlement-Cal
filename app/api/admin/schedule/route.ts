@@ -1,3 +1,4 @@
+import { PUBLIC_APP_URL } from "@/lib/public-links";
 import { requireAdmin } from "@/lib/authorization";
 import { sendEmail } from "@/lib/email";
 import { cancellationEmail } from "@/lib/email-templates";
@@ -24,8 +25,7 @@ export async function POST(request:Request){
         if(!primary)throw new Error("The appointment was cancelled, but its scheduled time could not be found for the email.");
         const slots=await repository.getSlotsForDay(primary.dayId);
         const paired=cancelled.pairedSlotId?slots.find((slot)=>slot.id===cancelled.pairedSlotId):undefined;
-        const origin=process.env.NEXT_PUBLIC_APP_URL||new URL(request.url).origin;
-        try { await sendEmail({to:cancelled.email,...cancellationEmail({memberName:cancelled.memberName,wardName,dayDate:primary.dayDate,startTime:primary.startTime,endTime:paired?.endTime??primary.endTime,adminPhone,scheduleUrl:origin})}); emailDelivered=true; }
+        try { await sendEmail({to:cancelled.email,...cancellationEmail({memberName:cancelled.memberName,wardName,dayDate:primary.dayDate,startTime:primary.startTime,endTime:paired?.endTime??primary.endTime,adminPhone,scheduleUrl:PUBLIC_APP_URL})}); emailDelivered=true; }
         catch(error){emailDelivered=false;console.error("Cancellation email delivery failed",error);}
       }
     }

@@ -44,9 +44,10 @@ Configure:
 - `CRON_SECRET`
 - `GMAIL_USER` and a Google app-specific `GMAIL_APP_PASSWORD` (no custom domain required)
 - `RESEND_API_KEY` and a verified-sender `RESEND_FROM_EMAIL`
-- `NEXT_PUBLIC_APP_URL` with the deployed HTTPS origin
 - `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN` from a Google OAuth web application granted offline Calendar access
 - `GOOGLE_CALENDAR_ID` set to `primary` or the ID of a dedicated calendar
+
+Member-facing links use the stable public origin in `lib/public-links.ts`: `https://tithing-settlement-cal.vercel.app`. Confirmation, reschedule, reminder, cancellation, QR, PDF, and copied sharing links all use this shared setting. `NEXT_PUBLIC_APP_URL`, incoming request hosts, and Vercel deployment URLs do not override it. If the public domain changes, update this setting and redeploy. Test outgoing links from a signed-out browser; keep the production domain publicly accessible in Vercel Deployment Protection. Preview deployments also generate links to the public production app, so use test recipients only when testing emails.
 
 Apply the migration before deploying. `vercel.json` invokes `/api/cron/reminders`; Vercel cron schedules use UTC. `14:00 UTC` is 08:00 Mountain Daylight Time, while exact 08:00 Mountain Standard Time requires `15:00 UTC`. Cron requests must carry `Authorization: Bearer $CRON_SECRET`.
 
