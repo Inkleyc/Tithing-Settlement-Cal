@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Archive, CalendarClock, CalendarPlus, Lock, MessageSquareText, PlusCircle, Printer, Shield, Trash2, X } from "lucide-react";
+import { textReminder } from "@/lib/text-reminder";
 import { ShareSchedule } from "@/components/share-schedule";
 import type { DayRecord, PublicSlotView, AppointmentRecord } from "@/lib/mock-store";
 
@@ -46,6 +47,8 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [wardName, setWardName] = useState("");
+  const [adminContact, setAdminContact] = useState({ name: "", email: "" });
+  const [savedSecretaryName, setSavedSecretaryName] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
   const [dayId, setDayId] = useState("");
   const [schedule, setSchedule] = useState<AdminSchedule>([]);
@@ -64,7 +67,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     intervalMinutes: 10,
   });
 
-  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setArchivedSchedule(data.archivedSchedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setGoogleCalendarConfigured(data.googleCalendarConfigured === true); return data as {schedule:AdminSchedule;archivedSchedule:AdminSchedule;emailDelivered?:boolean|null;calendarSync?:{created:number;updated:number;deleted:number;unchanged:number}}; };
+  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setArchivedSchedule(data.archivedSchedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setAdminContact(data.adminContact ?? {name:"",email:""}); setSavedSecretaryName(data.adminContact?.name ?? ""); setGoogleCalendarConfigured(data.googleCalendarConfigured === true); return data as {schedule:AdminSchedule;archivedSchedule:AdminSchedule;emailDelivered?:boolean|null;calendarSync?:{created:number;updated:number;deleted:number;unchanged:number}}; };
   useEffect(() => {
     if (!isAuthenticated) return;
     let active = true;
@@ -82,11 +85,13 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         setSchedule(nextSchedule);
         setArchivedSchedule((data.archivedSchedule ?? []) as AdminSchedule);
         setGoogleCalendarConfigured(data.googleCalendarConfigured === true);
+        setSavedSecretaryName(data.adminContact?.name ?? "");
         setDayId((current) => nextSchedule.some((item) => item.day.id === current) ? current : nextSchedule[0]?.day.id ?? "");
         if (firstLoad) {
           const initial = nextSchedule[0];
           setWardName(data.wardName ?? "");
           setAdminPhone(data.adminPhone ?? "");
+          setAdminContact(data.adminContact ?? {name:"",email:""});
           if (initial) setDayForm({ date: initial.day.date });
           firstLoad = false;
         }
@@ -160,6 +165,12 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     event.preventDefault();
     try { await mutate({action:"ward-name",name:wardName}); setStatus("Ward name saved."); }
     catch(caught){setStatus(caught instanceof Error?caught.message:"Unable to save the ward name.");}
+  };
+
+  const handleAdminContact = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try { await mutate({action:"admin-contact", ...adminContact}); setStatus("Executive Secretary name and email saved."); }
+    catch(caught){setStatus(caught instanceof Error?caught.message:"Unable to save contact details.");}
   };
 
   const handleAdminPhone = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -284,6 +295,12 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
             <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Ward name<input required maxLength={150} value={wardName} onChange={(event)=>setWardName(event.target.value)} placeholder="Example 3rd Ward" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
             <button type="submit" className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white">Save ward name</button>
           </form>
+          <form onSubmit={handleAdminContact} className="mb-6 border-b border-slate-200 pb-6">
+            <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Executive Secretary name<input maxLength={150} value={adminContact.name} onChange={(event)=>setAdminContact({...adminContact,name:event.target.value})} autoComplete="name" placeholder="Full name" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
+            <label className="mt-5 block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Executive Secretary email<input type="email" maxLength={255} value={adminContact.email} onChange={(event)=>setAdminContact({...adminContact,email:event.target.value})} autoComplete="email" placeholder="name@example.com" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
+            <p className="mt-2 text-sm text-slate-500">Email replies go to this address. The sending account stays the same. Leave blank to use the sending account for replies.</p>
+            <button type="submit" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800">Save name and email</button>
+          </form>
           <form onSubmit={handleAdminPhone} className="mb-6 border-b border-slate-200 pb-6">
             <label className="block text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Executive Secretary phone<input required maxLength={25} value={adminPhone} onChange={(event)=>setAdminPhone(event.target.value)} placeholder="(801) 555-1234" className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base font-normal normal-case tracking-normal text-slate-900" /></label>
             <button type="submit" className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800">Save phone number</button>
@@ -403,7 +420,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                         Add to Google Calendar
                       </a>}
                       {activeTab === "appointments" && <div className="mt-3 flex flex-wrap gap-2">
-                        <a href={`sms:${appointment.phone}?body=${encodeURIComponent(`Hi ${appointment.memberName.split(" ")[0]}, this is the ward executive secretary reminding you of your tithing declaration with the Bishop on ${selectedDay ? formatDate(selectedDay.day.date) : "the scheduled date"} at ${formatTime(slot.startTime)} in the Bishop's office.`)}`} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
+                        <a href={`sms:${appointment.phone}?body=${encodeURIComponent(textReminder(appointment.memberName, selectedDay ? formatDate(selectedDay.day.date) : "the scheduled date", formatTime(slot.startTime), savedSecretaryName))}`} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-2 py-1 text-xs font-medium text-white">
                           <MessageSquareText className="h-3.5 w-3.5" />
                           Text Reminder
                         </a>

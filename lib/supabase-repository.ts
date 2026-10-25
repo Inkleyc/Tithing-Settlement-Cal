@@ -44,6 +44,17 @@ async function byToken(token: string) {
 }
 
 export const supabaseRepository: ScheduleRepository = {
+  async getAdminContact() {
+    // Selecting the row keeps existing deployments usable before migration 005.
+    const result = await createSupabaseAdminClient().from("app_settings").select("*").eq("id", true).maybeSingle();
+    fail(result.error);
+    return { name: String(result.data?.executive_secretary_name ?? ""), email: String(result.data?.executive_secretary_email ?? "") };
+  },
+  async updateAdminContact(contact) {
+    const result = await createSupabaseAdminClient().from("app_settings").upsert({ id: true, executive_secretary_name: contact.name, executive_secretary_email: contact.email, updated_at: new Date().toISOString() });
+    if (["PGRST204", "42703"].includes(result.error?.code ?? "")) throw new Error("Contact settings need database migration 005 before they can be saved.");
+    fail(result.error);
+  },
   async getWardName(){const result=await createSupabaseAdminClient().from("app_settings").select("ward_name").eq("id",true).maybeSingle();if(result.error?.code==="PGRST205")return "";fail(result.error);return String(result.data?.ward_name??"");},
   async updateWardName(name){const result=await createSupabaseAdminClient().from("app_settings").upsert({id:true,ward_name:name,updated_at:new Date().toISOString()}).select("ward_name").single();fail(result.error);return String(result.data?.ward_name??name);},
   async getAdminPhone(){const result=await createSupabaseAdminClient().from("app_settings").select("executive_secretary_phone").eq("id",true).maybeSingle();fail(result.error);return String(result.data?.executive_secretary_phone??"");},

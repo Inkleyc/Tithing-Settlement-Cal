@@ -58,3 +58,7 @@ Public schedule responses contain reservation state but no member details. Appoi
 ## Gmail delivery without a domain
 
 Use a dedicated ward Gmail account. Enable Google 2-Step Verification, create an app password named `Tithing Scheduler`, and configure the Gmail variables locally and in Vercel. Never use the account's normal password or commit the app password. Confirmation and reminder messages include the ward, date, full appointment range, Bishop's Office, Executive Secretary phone, and secure reschedule link. If a confirmation email fails after a reservation is stored, the UI still confirms the booking and tells the member to save the displayed reschedule link; failed reminders remain eligible for a later retry.
+
+## Executive Secretary contact settings
+
+Apply `supabase/migrations/005_admin_contact.sql` in Supabase SQL Editor to enable the shared name and email settings in Admin → Setup. This additive migration preserves existing records. Until applied, existing settings and booking continue to work; saving new contact details shows a migration-needed message. The saved name personalizes text-reminder drafts, with the generic title as a fallback. The contact email sets Reply-To for Gmail and Resend messages; sending credentials and sender addresses are unchanged. Blank contact email retains the sender's default reply address.

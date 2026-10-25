@@ -3,11 +3,11 @@ import { requireAdmin } from "@/lib/authorization";
 import { sendEmail } from "@/lib/email";
 import { cancellationEmail } from "@/lib/email-templates";
 import { getRepository } from "@/lib/repository";
-import { identifier, jsonBody, phone, text } from "@/lib/validation";
+import { email, identifier, jsonBody, phone, text } from "@/lib/validation";
 import { todayInAppTimeZone } from "@/lib/dates";
 import { isGoogleCalendarConfigured, syncGoogleCalendar } from "@/lib/google-calendar";
 
-async function adminData() { const repository=getRepository(); await repository.archivePastDays(todayInAppTimeZone()); const [schedule,archivedSchedule,wardName,adminPhone]=await Promise.all([repository.getAdminSchedule(),repository.getArchivedSchedule(),repository.getWardName(),repository.getAdminPhone()]); return {schedule,archivedSchedule,wardName,adminPhone,googleCalendarConfigured:isGoogleCalendarConfigured()}; }
+async function adminData() { const repository=getRepository(); await repository.archivePastDays(todayInAppTimeZone()); const [schedule,archivedSchedule,wardName,adminPhone,adminContact]=await Promise.all([repository.getAdminSchedule(),repository.getArchivedSchedule(),repository.getWardName(),repository.getAdminPhone(),repository.getAdminContact()]); return {schedule,archivedSchedule,wardName,adminPhone,adminContact,googleCalendarConfigured:isGoogleCalendarConfigured()}; }
 export async function GET(){try{await requireAdmin();return Response.json(await adminData(),{headers:{"Cache-Control":"no-store, no-cache, must-revalidate"}});}catch{return Response.json({message:"Unauthorized"},{status:401});}}
 export async function POST(request:Request){
   try {
@@ -15,6 +15,11 @@ export async function POST(request:Request){
     let emailDelivered:boolean|null|undefined;
     let calendarSync;
     if(action==="ward-name")await repository.updateWardName(text(b.name,"Ward name",150));
+    else if(action==="admin-contact") {
+      const name = typeof b.name === "string" && !b.name.trim() ? "" : text(b.name,"Executive Secretary name",150);
+      const contactEmail = typeof b.email === "string" && !b.email.trim() ? "" : email(b.email);
+      await repository.updateAdminContact({name,email:contactEmail});
+    }
     else if(action==="admin-phone")await repository.updateAdminPhone(phone(b.phone));
     else if(action==="toggle")await repository.toggleSlotBlocked(identifier(b.slotId,"Time slot"));
     else if(action==="cancel"){

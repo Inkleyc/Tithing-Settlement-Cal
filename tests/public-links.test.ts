@@ -16,6 +16,8 @@ const { sendEmail, repository } = vi.hoisted(() => {
       getSlotsForDay: vi.fn().mockResolvedValue([slot]),
       getAllPublicSlots: vi.fn().mockResolvedValue([]),
       getWardName: vi.fn().mockResolvedValue("Test Ward"),
+      getAdminContact: vi.fn().mockResolvedValue({ name: "", email: "" }),
+      updateAdminContact: vi.fn().mockResolvedValue(undefined),
       getAdminPhone: vi.fn().mockResolvedValue("8015550100"),
       getAppointmentsForDate: vi.fn().mockResolvedValue([appointment]),
       markReminderSent: vi.fn().mockResolvedValue(undefined),
@@ -83,4 +85,27 @@ describe("public member links", () => {
       }
     },
   );
+});
+
+
+describe("admin contact settings", () => {
+  it("saves only the name and normalized contact email", async () => {
+    const response = await adminAction(request("/api/admin/schedule", { action: "admin-contact", name: " Colton Inkley ", email: " Secretary@Example.Test " }));
+    expect(response.status).toBe(200);
+    expect(repository.updateAdminContact).toHaveBeenCalledWith({ name: "Colton Inkley", email: "secretary@example.test" });
+    expect(repository.cancelAppointment).not.toHaveBeenCalled();
+    expect(repository.createReservation).not.toHaveBeenCalled();
+    expect(repository.rescheduleAppointment).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+  it("allows clearing contact settings", async () => {
+    const response = await adminAction(request("/api/admin/schedule", { action: "admin-contact", name: "", email: "" }));
+    expect(response.status).toBe(200);
+    expect(repository.updateAdminContact).toHaveBeenCalledWith({ name: "", email: "" });
+  });
+  it("rejects invalid contact email before saving", async () => {
+    const response = await adminAction(request("/api/admin/schedule", { action: "admin-contact", name: "Colton", email: "bad-address" }));
+    expect(response.status).toBe(400);
+    expect(repository.updateAdminContact).not.toHaveBeenCalled();
+  });
 });

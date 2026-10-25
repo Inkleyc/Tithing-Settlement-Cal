@@ -489,3 +489,7 @@ export const markReminderSent = (appointmentId: string) => {
   const appointment = mockAppointments.find((item) => item.id === appointmentId);
   if (appointment) appointment.reminderEmailSent = true;
 };
+
+let adminContact = { name: "", email: "" };
+export const getAdminContact = () => ({ ...adminContact });
+export const updateAdminContact = (contact: { name: string; email: string }) => { adminContact = { ...contact }; };

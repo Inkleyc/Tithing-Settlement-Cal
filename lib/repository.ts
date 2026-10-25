@@ -13,6 +13,8 @@ export type AdminSchedule = Array<{
 export interface ScheduleRepository {
   getWardName(): Promise<string>;
   updateWardName(name: string): Promise<string>;
+  getAdminContact(): Promise<{ name: string; email: string }>;
+  updateAdminContact(contact: { name: string; email: string }): Promise<void>;
   getAdminPhone(): Promise<string>;
   updateAdminPhone(phone: string): Promise<string>;
   getDays(): Promise<DayRecord[]>;
@@ -40,6 +42,8 @@ export interface ScheduleRepository {
 const mockRepository: ScheduleRepository = {
   getWardName: async () => mock.getWardName(),
   updateWardName: async (name) => mock.updateWardName(name),
+  getAdminContact: async () => mock.getAdminContact(),
+  updateAdminContact: async (contact) => mock.updateAdminContact(contact),
   getAdminPhone: async () => mock.getAdminPhone(),
   updateAdminPhone: async (phone) => mock.updateAdminPhone(phone),
   getDays: async () => mock.getDays(),
