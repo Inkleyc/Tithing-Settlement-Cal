@@ -82,11 +82,12 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
         if (!response.ok) throw new Error(data.message);
         if (!active) return;
         const nextSchedule = (data.schedule ?? []) as AdminSchedule;
+        const nextArchived = (data.archivedSchedule ?? []) as AdminSchedule;
         setSchedule(nextSchedule);
-        setArchivedSchedule((data.archivedSchedule ?? []) as AdminSchedule);
+        setArchivedSchedule(nextArchived);
         setGoogleCalendarConfigured(data.googleCalendarConfigured === true);
         setSavedSecretaryName(data.adminContact?.name ?? "");
-        setDayId((current) => nextSchedule.some((item) => item.day.id === current) ? current : nextSchedule[0]?.day.id ?? "");
+        setDayId((current) => nextSchedule.some((item) => item.day.id === current) || nextArchived.some((item) => item.day.id === current) ? current : nextSchedule[0]?.day.id ?? "");
         if (firstLoad) {
           const initial = nextSchedule[0];
           setWardName(data.wardName ?? "");
