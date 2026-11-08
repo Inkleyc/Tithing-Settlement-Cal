@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Archive, CalendarClock, CalendarPlus, Lock, MessageSquareText, PlusCircle, Printer, Shield, Trash2, X } from "lucide-react";
+import { Archive, CalendarClock, CalendarPlus, Download, Lock, MessageSquareText, PlusCircle, Printer, Shield, Trash2, X } from "lucide-react";
 import { textReminder } from "@/lib/text-reminder";
 import { ShareSchedule } from "@/components/share-schedule";
 import type { DayRecord, PublicSlotView, AppointmentRecord } from "@/lib/mock-store";
@@ -252,6 +252,27 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     );
   }
 
+  const handleExportArchived = () => {
+    const lines: string[] = ["Tithing declaration — archived attendance record"];
+    if (wardName) lines.push(wardName);
+    lines.push("");
+    const days = [...archivedSchedule].sort((a, b) => a.day.date.localeCompare(b.day.date));
+    for (const item of days) {
+      lines.push(formatDate(item.day.date));
+      const rows = item.slots.filter((slot) => slot.appointment && slot.appointment.status === "confirmed" && (!slot.appointment.pairedSlotId || slot.appointment.timeSlotId === slot.id));
+      if (!rows.length) lines.push("(no appointments)");
+      for (const slot of rows) lines.push(`${formatTime(slot.startTime)} — ${slot.appointment!.memberName}`);
+      lines.push("");
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "archived-attendance.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const displayedSchedule = activeTab === "archive" ? archivedSchedule : schedule;
   const selectedDay = displayedSchedule.find((item) => item.day.id === dayId) ?? displayedSchedule[0];
   const daySlots = selectedDay ? selectedDay.slots : [];
@@ -448,9 +469,15 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
           </div>
 
           {(activeTab === "appointments" || activeTab === "archive") && selectedDay && <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-4 print-area">
-            <div className="mb-3 flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
-              {activeTab === "archive" ? <Archive className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-              {activeTab === "archive" ? "Archived attendance record" : "Master schedule"}
+            <div className="mb-3 flex items-center justify-between gap-3 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <div className="flex items-center gap-3">
+                {activeTab === "archive" ? <Archive className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {activeTab === "archive" ? "Archived attendance record" : "Master schedule"}
+              </div>
+              {activeTab === "archive" && <button type="button" onClick={handleExportArchived} disabled={archivedSchedule.length === 0} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold normal-case tracking-normal text-slate-700 disabled:cursor-not-allowed disabled:text-slate-400 print:hidden">
+                <Download className="h-4 w-4" />
+                Export all archived days
+              </button>}
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
