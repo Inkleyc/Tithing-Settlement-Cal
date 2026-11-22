@@ -14,6 +14,11 @@ describe("contact reply address", () => {
     await sendEmail(message);
     expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ from: "Ward Tithing Declaration <sender@example.test>", replyTo: "secretary@example.test" }));
   });
+  it("honors an explicit reply-to over the contact email", async () => {
+    vi.stubEnv("GMAIL_USER", "sender@example.test"); vi.stubEnv("GMAIL_APP_PASSWORD", "test-password");
+    await sendEmail({ ...message, replyTo: "member@example.test" });
+    expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ replyTo: "member@example.test" }));
+  });
   it("uses the sending account for replies when contact email is blank", async () => {
     vi.stubEnv("GMAIL_USER", "sender@example.test"); vi.stubEnv("GMAIL_APP_PASSWORD", "test-password");
     getAdminContact.mockResolvedValueOnce({ name: "", email: "" });

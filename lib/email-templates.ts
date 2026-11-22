@@ -1,5 +1,6 @@
 type AppointmentEmailDetails = { memberName: string; wardName: string; dayDate: string; startTime: string; endTime: string; adminPhone: string; rescheduleUrl?: string };
 type CancellationEmailDetails = Omit<AppointmentEmailDetails,"rescheduleUrl"> & { scheduleUrl: string };
+type SecretarySignupDetails = AppointmentEmailDetails & { memberEmail: string; memberPhone: string; isLargeFamily: boolean; adminUrl: string };
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]!);
 const displayDate = (value: string) => {
   const [year,month,day]=value.split("-").map(Number);
@@ -13,6 +14,12 @@ export function confirmationEmail(details: AppointmentEmailDetails) {
   const rescheduleText=details.rescheduleUrl?`\nReschedule securely: ${details.rescheduleUrl}`:"";
   const contactText=details.adminPhone?`\nExecutive Secretary: ${details.adminPhone}`:"";
   return { subject: `${ward}: appointment confirmed`, text:`Hello ${details.memberName},\n\nYour tithing declaration appointment is confirmed.\n\nDate: ${date}\nTime: ${range}\nLocation: Bishop's Office${rescheduleText}${contactText}\n\nPlease keep this message for your records.`, html:`<h1>Appointment confirmed</h1><p>Hello ${escapeHtml(details.memberName)},</p><p>Your tithing declaration appointment for <strong>${escapeHtml(ward)}</strong> is confirmed.</p><p><strong>Date:</strong> ${escapeHtml(date)}<br><strong>Time:</strong> ${escapeHtml(range)}<br><strong>Location:</strong> Bishop&#39;s Office</p>${details.rescheduleUrl?`<p><a href="${escapeHtml(details.rescheduleUrl)}">Reschedule this appointment</a></p>`:""}${details.adminPhone?`<p>Executive Secretary: ${escapeHtml(details.adminPhone)}</p>`:""}<p>Please keep this message for your records.</p>` };
+}
+
+export function secretarySignupEmail(details: SecretarySignupDetails) {
+  const date=displayDate(details.dayDate), range=`${displayTime(details.startTime)}–${displayTime(details.endTime)}`, ward=details.wardName||"Ward Tithing Declaration";
+  const familyText=details.isLargeFamily?"Yes (20 minutes)":"No";
+  return { subject: `${ward}: new signup — ${details.memberName}`, text:`New tithing declaration signup.\n\nName: ${details.memberName}\nDate: ${date}\nTime: ${range}\nLocation: Bishop's Office\nLarge family: ${familyText}\nPhone: ${details.memberPhone}\nEmail: ${details.memberEmail}\n\nView the schedule: ${details.adminUrl}`, html:`<h1>New signup</h1><p>A new tithing declaration appointment was booked for <strong>${escapeHtml(ward)}</strong>.</p><p><strong>Name:</strong> ${escapeHtml(details.memberName)}<br><strong>Date:</strong> ${escapeHtml(date)}<br><strong>Time:</strong> ${escapeHtml(range)}<br><strong>Location:</strong> Bishop&#39;s Office<br><strong>Large family:</strong> ${familyText}<br><strong>Phone:</strong> ${escapeHtml(details.memberPhone)}<br><strong>Email:</strong> ${escapeHtml(details.memberEmail)}</p><p><a href="${escapeHtml(details.adminUrl)}">View the schedule</a></p>` };
 }
 
 export function rescheduleConfirmationEmail(details: AppointmentEmailDetails) {
