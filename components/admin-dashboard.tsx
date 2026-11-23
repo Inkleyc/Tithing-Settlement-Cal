@@ -69,7 +69,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     intervalMinutes: 10,
   });
 
-  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setArchivedSchedule(data.archivedSchedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setAdminContact(data.adminContact ?? {name:"",email:""}); setSavedSecretaryName(data.adminContact?.name ?? ""); setGoogleCalendarConfigured(data.googleCalendarConfigured === true); return data as {schedule:AdminSchedule;archivedSchedule:AdminSchedule;emailDelivered?:boolean|null;calendarSync?:{created:number;updated:number;deleted:number;unchanged:number};slotBlock?:{added:number;skipped:number}}; };
+  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setArchivedSchedule(data.archivedSchedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setAdminContact(data.adminContact ?? {name:"",email:""}); setSavedSecretaryName(data.adminContact?.name ?? ""); setGoogleCalendarConfigured(data.googleCalendarConfigured === true); return data as {schedule:AdminSchedule;archivedSchedule:AdminSchedule;emailDelivered?:boolean|null;calendarSync?:{created:number;updated:number;deleted:number;unchanged:number};slotBlock?:{added:number;skipped:number;firstOverlap?:{startTime:string;endTime:string}}}; };
   useEffect(() => {
     if (!isAuthenticated) return;
     let active = true;
@@ -213,7 +213,9 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
       const result = await mutate({ action: "add-slot-block", dayId, ...slotBlockForm });
       const added = result.slotBlock?.added ?? 0;
       const skipped = result.slotBlock?.skipped ?? 0;
-      const message = added === 0 ? "No times added — every slot in that block overlaps a time this day already has." : `Added ${added} time${added === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} that overlapped existing times.` : ""}`;
+      const overlap = result.slotBlock?.firstOverlap;
+      const overlapNote = overlap ? ` The first overlap is the existing ${formatTime(overlap.startTime)} – ${formatTime(overlap.endTime)} time.` : "";
+      const message = added === 0 ? `No times added — every slot in that block overlaps a time this day already has.${overlapNote}` : `Added ${added} time${added === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} that overlapped existing times.${overlapNote}` : ""}`;
       setSlotBlockStatus(message);
       setStatus(message);
     }
@@ -440,7 +442,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               if (appointment?.pairedSlotId === slot.id && appointment.timeSlotId !== slot.id) return null;
               const pairedSlot = appointment?.pairedSlotId ? daySlots.find((item) => item.id === appointment.pairedSlotId) : undefined;
               const reserved = slot.isReserved || Boolean(appointment);
-              const appointmentTime = pairedSlot ? `${formatTime(slot.startTime)} – ${formatTime(pairedSlot.endTime)}` : formatTime(slot.startTime);
+              const appointmentTime = pairedSlot ? `${formatTime(slot.startTime)} – ${formatTime(pairedSlot.endTime)}` : `${formatTime(slot.startTime)} – ${formatTime(slot.endTime)}`;
 
               return (
                 <div key={slot.id} className={[

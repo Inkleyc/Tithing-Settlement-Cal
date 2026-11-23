@@ -30,10 +30,20 @@ describe("admin add-slot-block", () => {
     }));
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.slotBlock).toEqual({ added: 2, skipped: 1 });
+    expect(body.slotBlock).toEqual({ added: 2, skipped: 1, firstOverlap: { startTime: "13:10", endTime: "13:20" } });
     expect(repository.addTimeSlot).toHaveBeenCalledTimes(2);
     expect(repository.addTimeSlot).toHaveBeenCalledWith("day", "13:00", "13:10", false);
     expect(repository.addTimeSlot).toHaveBeenCalledWith("day", "13:20", "13:30", false);
+  });
+  it("rejects a single slot that runs more than 2 hours (AM/PM slip guard)", async () => {
+    const response = await adminAction(new Request("https://example.test/api/admin/schedule", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add-slot", dayId: "day", startTime: "10:20", endTime: "22:30" }),
+    }));
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.message).toMatch(/AM\/PM/);
+    expect(repository.addTimeSlot).not.toHaveBeenCalled();
   });
   it("rejects a block whose end is not after its start", async () => {
     const response = await adminAction(new Request("https://example.test/api/admin/schedule", {

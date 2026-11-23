@@ -16,7 +16,7 @@ export async function POST(request:Request){
     await requireAdmin(); const b=await jsonBody(request); const action=text(b.action,"Action",20),repository=getRepository();
     let emailDelivered:boolean|null|undefined;
     let calendarSync;
-    let slotBlock:{added:number;skipped:number}|undefined;
+    let slotBlock:{added:number;skipped:number;firstOverlap?:{startTime:string;endTime:string}}|undefined;
     let appointmentChanged=false;
     if(action==="ward-name")await repository.updateWardName(text(b.name,"Ward name",150));
     else if(action==="admin-contact") {
@@ -42,8 +42,8 @@ export async function POST(request:Request){
     else if(action==="walk-in"){appointmentChanged=true;await repository.createWalkInAppointment(identifier(b.slotId,"Time slot"),text(b.name,"Name",150),phone(b.phone));}
     else if(action==="edit-day")await repository.updateDay(identifier(b.dayId,"Day"),text(b.date,"Date",10),typeof b.notes==="string"?b.notes.trim().slice(0,255):"");
     else if(action==="delete-day")await repository.deleteDay(identifier(b.dayId,"Day"));
-    else if(action==="add-slot"){const start=text(b.startTime,"Start time",5),end=text(b.endTime,"End time",5);if(!/^\d{2}:\d{2}$/.test(start)||!/^\d{2}:\d{2}$/.test(end)||start>=end)throw new Error("End time must be after start time.");await repository.addTimeSlot(identifier(b.dayId,"Day"),start,end,false);}
-    else if(action==="add-slot-block"){const dayId=identifier(b.dayId,"Day");const start=text(b.startTime,"Start time",5),end=text(b.endTime,"End time",5);const interval=Number(b.intervalMinutes);const existing=await repository.getSlotsForDay(dayId);const plan=planSlotBlock(existing,start,end,interval);for(const slot of plan.toAdd)await repository.addTimeSlot(dayId,slot.startTime,slot.endTime,false);slotBlock={added:plan.toAdd.length,skipped:plan.skipped};}
+    else if(action==="add-slot"){const start=text(b.startTime,"Start time",5),end=text(b.endTime,"End time",5);if(!/^\d{2}:\d{2}$/.test(start)||!/^\d{2}:\d{2}$/.test(end)||start>=end)throw new Error("End time must be after start time.");const mins=(t:string)=>Number(t.slice(0,2))*60+Number(t.slice(3,5));if(mins(end)-mins(start)>120)throw new Error("That time runs more than 2 hours — check the AM/PM on the end time.");await repository.addTimeSlot(identifier(b.dayId,"Day"),start,end,false);}
+    else if(action==="add-slot-block"){const dayId=identifier(b.dayId,"Day");const start=text(b.startTime,"Start time",5),end=text(b.endTime,"End time",5);const interval=Number(b.intervalMinutes);const existing=await repository.getSlotsForDay(dayId);const plan=planSlotBlock(existing,start,end,interval);for(const slot of plan.toAdd)await repository.addTimeSlot(dayId,slot.startTime,slot.endTime,false);slotBlock={added:plan.toAdd.length,skipped:plan.skipped,...(plan.firstOverlap?{firstOverlap:plan.firstOverlap}:{})};}
     else if(action==="delete-slot")await repository.deleteTimeSlot(identifier(b.slotId,"Time slot"));
     else if(action==="generate"){const interval=Number(b.intervalMinutes);if(!Number.isInteger(interval)||interval<5||interval>60)throw new Error("Interval must be between 5 and 60 minutes.");await repository.generateScheduleForDay(text(b.date,"Date",10),text(b.startTime,"Start time",5),text(b.endTime,"End time",5),interval,180,typeof b.notes==="string"?b.notes.trim().slice(0,255):"");}
     else if(action==="sync-calendar"){const [schedule,wardName]=await Promise.all([repository.getAdminSchedule(),repository.getWardName()]);calendarSync=await syncGoogleCalendar(schedule,wardName);}

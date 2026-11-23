@@ -24,7 +24,7 @@ describe("add-slot-block against the real repository", () => {
     const extended = await post({ action: "add-slot-block", dayId: day.day.id, startTime: "10:50", endTime: "11:30", intervalMinutes: 10 });
     expect(extended.status).toBe(200);
     const extendedBody = await extended.json();
-    expect(extendedBody.slotBlock).toEqual({ added: 3, skipped: 1 });
+    expect(extendedBody.slotBlock).toEqual({ added: 3, skipped: 1, firstOverlap: { startTime: "10:50", endTime: "11:00" } });
     const after = extendedBody.schedule.find((item: { day: { id: string } }) => item.day.id === day.day.id);
     expect(after.slots.map((slot: { startTime: string }) => slot.startTime)).toEqual([
       "10:00", "10:10", "10:20", "10:30", "10:40", "10:50", "11:00", "11:10", "11:20",

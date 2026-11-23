@@ -1,5 +1,5 @@
 export type SlotRange = { startTime: string; endTime: string };
-export type SlotBlockPlan = { toAdd: SlotRange[]; skipped: number };
+export type SlotBlockPlan = { toAdd: SlotRange[]; skipped: number; firstOverlap?: SlotRange };
 
 const toMinutes = (value: string) => {
   const match = /^(\d{2}):(\d{2})$/.exec(value);
@@ -25,17 +25,18 @@ export function planSlotBlock(existing: SlotRange[], startTime: string, endTime:
   if (!Number.isInteger(intervalMinutes) || intervalMinutes < 5 || intervalMinutes > 60) throw new Error("Interval must be between 5 and 60 minutes.");
 
   const existingRanges = existing
-    .map((slot) => ({ start: toMinutes(slot.startTime), end: toMinutes(slot.endTime) }))
-    .filter((range): range is { start: number; end: number } => range.start !== null && range.end !== null);
+    .map((slot) => ({ start: toMinutes(slot.startTime), end: toMinutes(slot.endTime), startTime: slot.startTime, endTime: slot.endTime }))
+    .filter((range): range is { start: number; end: number; startTime: string; endTime: string } => range.start !== null && range.end !== null);
 
   const toAdd: SlotRange[] = [];
   let skipped = 0;
+  let firstOverlap: SlotRange | undefined;
   for (let cursor = start; cursor < end; cursor += intervalMinutes) {
     const candidate = { start: cursor, end: Math.min(cursor + intervalMinutes, end) };
-    const overlaps = existingRanges.some((range) => candidate.start < range.end && range.start < candidate.end);
-    if (overlaps) { skipped += 1; continue; }
+    const hit = existingRanges.find((range) => candidate.start < range.end && range.start < candidate.end);
+    if (hit) { skipped += 1; if (!firstOverlap) firstOverlap = { startTime: hit.startTime, endTime: hit.endTime }; continue; }
     toAdd.push({ startTime: toTime(candidate.start), endTime: toTime(candidate.end) });
-    existingRanges.push(candidate);
+    existingRanges.push({ ...candidate, startTime: toTime(candidate.start), endTime: toTime(candidate.end) });
   }
-  return { toAdd, skipped };
+  return { toAdd, skipped, ...(firstOverlap ? { firstOverlap } : {}) };
 }

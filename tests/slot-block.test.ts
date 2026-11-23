@@ -23,6 +23,13 @@ describe("planSlotBlock", () => {
     const plan = planSlotBlock(existing, "13:00", "14:00", 10);
     expect(plan.skipped).toBe(2);
     expect(plan.toAdd.map((slot) => slot.startTime)).toEqual(["13:00", "13:20", "13:40", "13:50"]);
+    expect(plan.firstOverlap).toEqual({ startTime: "13:10", endTime: "13:20" });
+  });
+  it("names an over-long existing slot as the overlap", () => {
+    const plan = planSlotBlock([{ startTime: "10:20", endTime: "22:30" }], "10:50", "11:30", 10);
+    expect(plan.toAdd).toEqual([]);
+    expect(plan.skipped).toBe(4);
+    expect(plan.firstOverlap).toEqual({ startTime: "10:20", endTime: "22:30" });
   });
   it("skips a candidate that partially overlaps an existing slot", () => {
     const existing = [{ startTime: "13:05", endTime: "13:15" }];
