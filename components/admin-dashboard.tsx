@@ -61,6 +61,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [dayForm, setDayForm] = useState({ date: "" });
   const [slotForm, setSlotForm] = useState({ startTime: "", endTime: "" });
   const [slotBlockForm, setSlotBlockForm] = useState({ startTime: "", endTime: "", intervalMinutes: 10 });
+  const [slotBlockStatus, setSlotBlockStatus] = useState<string | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
     startTime: "13:00",
@@ -207,13 +208,16 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
 
   const handleAddSlotBlock = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSlotBlockStatus("Adding…");
     try {
       const result = await mutate({ action: "add-slot-block", dayId, ...slotBlockForm });
       const added = result.slotBlock?.added ?? 0;
       const skipped = result.slotBlock?.skipped ?? 0;
-      setStatus(added === 0 ? "No times added — every slot in that block overlaps an existing time." : `Added ${added} time${added === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} that overlapped existing times.` : ""}`);
+      const message = added === 0 ? "No times added — every slot in that block overlaps a time this day already has." : `Added ${added} time${added === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} that overlapped existing times.` : ""}`;
+      setSlotBlockStatus(message);
+      setStatus(message);
     }
-    catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to add the block of times."); }
+    catch (caught) { const message = caught instanceof Error ? caught.message : "Unable to add the block of times."; setSlotBlockStatus(message); setStatus(message); }
   };
 
   const handleDeleteSlot = async (slotId: string) => {
@@ -418,12 +422,14 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
               <form onSubmit={handleAddSlotBlock} className="min-w-0 space-y-3 xl:col-span-2">
                 <h3 className="font-semibold text-slate-900">Add a block of times</h3>
                 <p className="text-sm text-slate-500">Fill a stretch of this day with consecutive slots, like the initial day setup. Times that overlap an existing slot are skipped, so booked times are never disturbed.</p>
+                {daySlots.length > 0 && <p className="text-sm font-medium text-slate-600">This day currently has {daySlots.length} time{daySlots.length === 1 ? "" : "s"}, from {formatTime(daySlots.reduce((earliest, slot) => slot.startTime < earliest ? slot.startTime : earliest, daySlots[0].startTime))} to {formatTime(daySlots.reduce((latest, slot) => slot.endTime > latest ? slot.endTime : latest, daySlots[0].endTime))}.</p>}
                 <div className="grid min-w-0 gap-3 sm:grid-cols-3">
                   <label className="block min-w-0 text-sm font-medium text-slate-700">Block start<input required type="time" value={slotBlockForm.startTime} onChange={(event)=>setSlotBlockForm((current)=>({...current,startTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                   <label className="block min-w-0 text-sm font-medium text-slate-700">Block end<input required type="time" value={slotBlockForm.endTime} onChange={(event)=>setSlotBlockForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                   <label className="block min-w-0 text-sm font-medium text-slate-700">Minutes per slot<input required type="number" min={5} max={60} step={5} value={slotBlockForm.intervalMinutes} onChange={(event)=>setSlotBlockForm((current)=>({...current,intervalMinutes:Number(event.target.value)}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
                 <button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Add block</button>
+                {slotBlockStatus && <p role="status" className="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">{slotBlockStatus}</p>}
               </form>
             </div>
           )}
