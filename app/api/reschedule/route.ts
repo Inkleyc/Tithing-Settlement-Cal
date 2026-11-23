@@ -1,6 +1,7 @@
 import { rescheduleUrl } from "@/lib/public-links";
 import { sendEmail } from "@/lib/email";
 import { rescheduleConfirmationEmail } from "@/lib/email-templates";
+import { scheduleCalendarSync } from "@/lib/calendar-sync-trigger";
 import { getRepository } from "@/lib/repository";
 import { identifier,jsonBody } from "@/lib/validation";
 async function responseFor(token:string){
@@ -25,6 +26,7 @@ export async function PATCH(request:Request){
     try{
       await sendEmail({to:data.appointment.email,...rescheduleConfirmationEmail({memberName:data.appointment.memberName,wardName:data.wardName,dayDate:data.currentSlot.dayDate,startTime:data.currentSlot.startTime,endTime:data.currentSlot.endTime,adminPhone:data.adminPhone,rescheduleUrl:rescheduleUrl(data.appointment.rescheduleToken)})});
     }catch(error){emailDelivered=false;console.error("Reschedule confirmation email delivery failed",error);}
+    await scheduleCalendarSync();
     return Response.json({...data,emailDelivered});
   }catch(error){return Response.json({message:error instanceof Error?error.message:"Unable to reschedule."},{status:400});}
 }

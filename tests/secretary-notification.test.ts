@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { sendEmail, repository, syncGoogleCalendar, calendarConfigured } = vi.hoisted(() => {
+const { sendEmail, repository, syncGoogleCalendar, calendarConfigured, scheduleCalendarSync } = vi.hoisted(() => {
   const appointment = { id: "appointment", email: "member@example.test", memberName: "Test Member", phone: "8015550199", isLargeFamily: false, rescheduleToken: "test-token", timeSlotId: "slot", pairedSlotId: null };
   const slot = { id: "slot", dayId: "day", dayDate: "2026-11-29", startTime: "16:00", endTime: "16:10" };
   return {
@@ -16,9 +16,11 @@ const { sendEmail, repository, syncGoogleCalendar, calendarConfigured } = vi.hoi
     },
     syncGoogleCalendar: vi.fn().mockResolvedValue({ created: 1, updated: 0, deleted: 0, unchanged: 0 }),
     calendarConfigured: { value: true },
+    scheduleCalendarSync: vi.fn().mockResolvedValue(undefined),
   };
 });
 vi.mock("../lib/email", () => ({ sendEmail }));
+vi.mock("../lib/calendar-sync-trigger", () => ({ scheduleCalendarSync }));
 vi.mock("../lib/repository", () => ({ getRepository: () => repository }));
 vi.mock("../lib/google-calendar", () => ({ isGoogleCalendarConfigured: () => calendarConfigured.value, syncGoogleCalendar }));
 
@@ -47,6 +49,7 @@ describe("secretary signup notification", () => {
     expect(notice.subject).toContain("new signup");
     expect(notice.text).toContain("Test Member");
     expect(notice.text).toContain("https://tithing-settlement-cal.vercel.app/admin");
+    expect(scheduleCalendarSync).toHaveBeenCalledTimes(1);
   });
   it("sends no notice when no secretary email is saved", async () => {
     repository.getAdminContact.mockResolvedValue({ name: "", email: "" });

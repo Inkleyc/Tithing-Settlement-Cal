@@ -60,6 +60,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
   const [walkInForm, setWalkInForm] = useState({ name: "", phone: "" });
   const [dayForm, setDayForm] = useState({ date: "" });
   const [slotForm, setSlotForm] = useState({ startTime: "", endTime: "" });
+  const [slotBlockForm, setSlotBlockForm] = useState({ startTime: "", endTime: "", intervalMinutes: 10 });
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
     startTime: "13:00",
@@ -67,7 +68,7 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     intervalMinutes: 10,
   });
 
-  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setArchivedSchedule(data.archivedSchedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setAdminContact(data.adminContact ?? {name:"",email:""}); setSavedSecretaryName(data.adminContact?.name ?? ""); setGoogleCalendarConfigured(data.googleCalendarConfigured === true); return data as {schedule:AdminSchedule;archivedSchedule:AdminSchedule;emailDelivered?:boolean|null;calendarSync?:{created:number;updated:number;deleted:number;unchanged:number}}; };
+  const mutate = async (body: object) => { const response = await fetch("/api/admin/schedule", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); setSchedule(data.schedule); setArchivedSchedule(data.archivedSchedule ?? []); setWardName(data.wardName ?? ""); setAdminPhone(data.adminPhone ?? ""); setAdminContact(data.adminContact ?? {name:"",email:""}); setSavedSecretaryName(data.adminContact?.name ?? ""); setGoogleCalendarConfigured(data.googleCalendarConfigured === true); return data as {schedule:AdminSchedule;archivedSchedule:AdminSchedule;emailDelivered?:boolean|null;calendarSync?:{created:number;updated:number;deleted:number;unchanged:number};slotBlock?:{added:number;skipped:number}}; };
   useEffect(() => {
     if (!isAuthenticated) return;
     let active = true;
@@ -202,6 +203,17 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
     event.preventDefault();
     try { await mutate({ action: "add-slot", dayId, ...slotForm }); setSlotForm({ startTime: "", endTime: "" }); setStatus("Time slot added."); }
     catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to add the slot."); }
+  };
+
+  const handleAddSlotBlock = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      const result = await mutate({ action: "add-slot-block", dayId, ...slotBlockForm });
+      const added = result.slotBlock?.added ?? 0;
+      const skipped = result.slotBlock?.skipped ?? 0;
+      setStatus(added === 0 ? "No times added — every slot in that block overlaps an existing time." : `Added ${added} time${added === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} that overlapped existing times.` : ""}`);
+    }
+    catch (caught) { setStatus(caught instanceof Error ? caught.message : "Unable to add the block of times."); }
   };
 
   const handleDeleteSlot = async (slotId: string) => {
@@ -402,6 +414,16 @@ export function AdminDashboard({ isAuthenticated }: { isAuthenticated: boolean }
                   <label className="block min-w-0 text-sm font-medium text-slate-700">End<input required type="time" value={slotForm.endTime} onChange={(event)=>setSlotForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
                 </div>
                 <button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Add time</button>
+              </form>
+              <form onSubmit={handleAddSlotBlock} className="min-w-0 space-y-3 xl:col-span-2">
+                <h3 className="font-semibold text-slate-900">Add a block of times</h3>
+                <p className="text-sm text-slate-500">Fill a stretch of this day with consecutive slots, like the initial day setup. Times that overlap an existing slot are skipped, so booked times are never disturbed.</p>
+                <div className="grid min-w-0 gap-3 sm:grid-cols-3">
+                  <label className="block min-w-0 text-sm font-medium text-slate-700">Block start<input required type="time" value={slotBlockForm.startTime} onChange={(event)=>setSlotBlockForm((current)=>({...current,startTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                  <label className="block min-w-0 text-sm font-medium text-slate-700">Block end<input required type="time" value={slotBlockForm.endTime} onChange={(event)=>setSlotBlockForm((current)=>({...current,endTime:event.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                  <label className="block min-w-0 text-sm font-medium text-slate-700">Minutes per slot<input required type="number" min={5} max={60} step={5} value={slotBlockForm.intervalMinutes} onChange={(event)=>setSlotBlockForm((current)=>({...current,intervalMinutes:Number(event.target.value)}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2" /></label>
+                </div>
+                <button type="submit" className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">Add block</button>
               </form>
             </div>
           )}
